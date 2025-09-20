@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+    <h1>Simple Upload Test</h1>
+
+    <h2>AED File</h2>
+    <input type="file" id="aed-file" accept=".csv">
+    <div id="aed-result"></div>
+
+    <h2>Population File</h2>
+    <input type="file" id="pop-file" accept=".csv">
+    <div id="pop-result"></div>
+
+    <script>
+        document.getElementById('aed-file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                console.log('AED file selected:', file.name);
+                Papa.parse(file, {
+                    header: true,
+                    complete: function(results) {
+                        console.log('AED data:', results.data);
+                        document.getElementById('aed-result').textContent =
+                            'Loaded ' + results.data.length + ' AED records';
+                    }
+                });
+            }
+        });
+
+        document.getElementById('pop-file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                console.log('Population file selected:', file.name);
+                Papa.parse(file, {
+                    header: true,
+                    complete: function(results) {
+                        console.log('Population data:', results.data);
+                        document.getElementById('pop-result').textContent =
+                            'Loaded ' + results.data.length + ' population records';
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

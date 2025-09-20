@@ -1,7 +1,6 @@
 # encoding: utf-8
 from __future__ import annotations
 
-import cgi
 import json
 import logging
 from typing import Any, Optional, Union, cast
@@ -9,6 +8,13 @@ from typing import Any, Optional, Union, cast
 from werkzeug.wrappers.response import Response as WerkzeugResponse
 import flask
 from flask.views import MethodView
+
+# Simple replacement for cgi.FieldStorage
+class FieldStorage:
+    def __init__(self, file_obj):
+        self.file = file_obj
+        self.filename = getattr(file_obj, 'filename', None)
+        self.name = getattr(file_obj, 'name', None)
 
 import ckan.lib.base as base
 import ckan.lib.datapreview as lib_datapreview
@@ -202,7 +208,7 @@ class CreateView(MethodView):
         data_provided = False
         for key, value in data.items():
             if (
-                    (value or isinstance(value, cgi.FieldStorage))
+                    (value or isinstance(value, FieldStorage))
                     and key != u'resource_type'):
                 data_provided = True
                 break

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import sys
-import cgitb
 import warnings
 import traceback
 
@@ -43,15 +42,13 @@ def text_traceback() -> str:
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         try:
-            text = cgitb.text(info)
+            text = ''.join(traceback.format_exception(*info))
         except RuntimeError:
             # there is werkzeug.local.LocalProxy object inside traceback, that
-            # cannot be printed out by the cgitb
+            # cannot be printed out by traceback
             res = "".join(traceback.format_tb(info[-1]))
         else:
-            res = 'the original traceback:'.join(
-                text.split('the original traceback:')[1:]
-            ).strip()
+            res = text.strip()
 
     return res
 

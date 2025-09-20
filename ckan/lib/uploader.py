@@ -2,16 +2,23 @@
 from __future__ import annotations
 
 import os
-import cgi
 import datetime
 import logging
 import magic
 import mimetypes
 from pathlib import Path
+from email.message import EmailMessage
 from typing import Any, IO, Optional, Union
 from urllib.parse import urlparse
 
 from werkzeug.datastructures import FileStorage as FlaskFileStorage
+
+# Simple replacement for cgi.FieldStorage
+class FieldStorage:
+    def __init__(self, file_obj):
+        self.file = file_obj
+        self.filename = getattr(file_obj, 'filename', None)
+        self.name = getattr(file_obj, 'name', None)
 
 import ckan.lib.munge as munge
 import ckan.logic as logic
@@ -19,7 +26,7 @@ import ckan.plugins as plugins
 from ckan.common import config
 from ckan.types import ErrorDict, PUploader, PResourceUploader
 
-ALLOWED_UPLOAD_TYPES = (cgi.FieldStorage, FlaskFileStorage)
+ALLOWED_UPLOAD_TYPES = (FieldStorage, FlaskFileStorage)
 MB = 1 << 20
 
 log = logging.getLogger(__name__)
@@ -41,7 +48,7 @@ def _copy_file(input_file: IO[bytes],
             raise logic.ValidationError({'upload': ['File upload too large']})
 
 
-def _get_underlying_file(wrapper: Union[FlaskFileStorage, cgi.FieldStorage]):
+def _get_underlying_file(wrapper: Union[FlaskFileStorage, FieldStorage]):
     if isinstance(wrapper, FlaskFileStorage):
         return wrapper.stream
     return wrapper.file
