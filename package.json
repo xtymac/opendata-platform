@@ -1,7 +1,7 @@
 {
-  "name": "ckan",
+  "name": "yamaguchi-ckan",
   "version": "1.0.0",
-  "description": "CKAN: The Open Source Data Portal Software ==========================================",
+  "description": "Yamaguchi CKAN: Customized Open Source Data Portal Software ==========================================",
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.7.2",
     "@highlightjs/cdn-assets": "^11.11.1",
@@ -37,13 +37,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ckan/ckan.git"
+    "url": "git+https://github.com/your-username/yamaguchi-ckan.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/ckan/ckan/issues"
+    "url": "https://github.com/your-username/yamaguchi-ckan/issues"
   },
-  "homepage": "https://github.com/ckan/ckan#readme"
+  "homepage": "https://github.com/your-username/yamaguchi-ckan#readme"
 }

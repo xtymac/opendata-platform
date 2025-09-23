@@ -1,5 +1,5 @@
-CKAN: The Open Source Data Portal Software
-==========================================
+Yamaguchi CKAN: Customized Open Source Data Portal Software
+===========================================================
 
 .. image:: https://img.shields.io/badge/license-AGPL-blue.svg?style=flat
     :target: https://opensource.org/licenses/AGPL-3.0
@@ -12,22 +12,22 @@ CKAN: The Open Source Data Portal Software
     :target: https://stackoverflow.com/questions/tagged/ckan
     :alt: Support on StackOverflow
 
-.. image:: https://github.com/ckan/ckan/actions/workflows/test.yml/badge.svg
-    :target: https://github.com/ckan/ckan/actions/workflows/test.yml
+.. image:: https://github.com/your-username/yamaguchi-ckan/actions/workflows/test.yml/badge.svg
+    :target: https://github.com/your-username/yamaguchi-ckan/actions/workflows/test.yml
     :alt: GitHub Actions Build Status
 
-.. image:: https://codecov.io/github/ckan/ckan/graph/badge.svg?token=aXdmn98Yu2
- :target: https://codecov.io/github/ckan/ckan
+.. image:: https://codecov.io/github/your-username/yamaguchi-ckan/graph/badge.svg?token=aXdmn98Yu2
+ :target: https://codecov.io/github/your-username/yamaguchi-ckan
 
 .. image:: https://badges.gitter.im/gitterHQ/gitter.svg
     :target: https://gitter.im/ckan/chat
     :alt: Chat on Gitter
 
-**CKAN is the world’s leading open-source data portal platform**.
-CKAN makes it easy to publish, share and work with data. It's a data management
+**Yamaguchi CKAN is a customized version of the world's leading open-source data portal platform**.
+This customized CKAN makes it easy to publish, share and work with data. It's a data management
 system that provides a powerful platform for cataloging, storing and accessing
 datasets with a rich front-end, full API (for both data and catalog), visualization
-tools and more. Read more at `ckan.org <https://ckan.org/>`_.
+tools and more. Based on the original CKAN project. Read more at `ckan.org <https://ckan.org/>`_.
 
 
 Installation
@@ -58,8 +58,8 @@ rather than creating a public issue on GitHub.
 Contributing to CKAN
 --------------------
 
-For contributing to CKAN or its documentation, see
-`CONTRIBUTING <https://github.com/ckan/ckan/blob/master/CONTRIBUTING.md>`_.
+For contributing to Yamaguchi CKAN or its documentation, see
+`CONTRIBUTING <https://github.com/your-username/yamaguchi-ckan/blob/master/CONTRIBUTING.md>`_.
 
 Mailing List
 ~~~~~~~~~~~~

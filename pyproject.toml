@@ -8,7 +8,7 @@ directory = "changes"
 package = "ckan"
 filename = "CHANGELOG.rst"
 title_format = "v.{version} {project_date}"
-issue_format = "`#{issue} <https://github.com/ckan/ckan/pull/{issue}>`_"
+issue_format = "`#{issue} <https://github.com/your-username/yamaguchi-ckan/pull/{issue}>`_"
 wrap = true
 
 [[tool.towncrier.type]]
