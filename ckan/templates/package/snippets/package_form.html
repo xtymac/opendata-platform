@@ -20,9 +20,32 @@ then itself be extended to add/remove blocks of functionality. #}
     {% snippet 'package/snippets/package_basic_fields.html', data=data, errors=errors %}
   {% endblock %}
 
+  {% block groups_fields %}
+    {# Groups selection field - simple and reliable #}
+    <div class="form-group control-medium">
+      <label for="field-groups" class="form-label">{{ _('Groups') }}</label>
+      <div class="controls">
+        {% set current_groups = [] %}
+        {% for group in data.get('groups', []) %}
+          {% set _ = current_groups.append(group.name) %}
+        {% endfor %}
+        <input id="field-groups" name="groups_input" type="text" class="form-control"
+               value="{{ current_groups | join(', ') }}"
+               placeholder="{{ _('census, population-statistics') }}">
+        <span class="info-block">
+          <i class="fa fa-info-circle"></i>
+          {{ _('Enter group names separated by commas. Available groups: census, economic-census, population-statistics, crime-statistics') }}
+        </span>
+      </div>
+    </div>
+  {% endblock %}
+
   {% block metadata_fields %}
     {% snippet 'package/snippets/package_metadata_fields.html', data=data, errors=errors %}
   {% endblock %}
+
+  {# Include groups handler script #}
+  <script src="/base/javascript/groups-handler.js"></script>
 
   {% block form_actions %}
     {{ form.required_message() }}

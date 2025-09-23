@@ -72,6 +72,7 @@
       {# TODO: store just name of asset instead of path to it. #}
       {% set theme = h.get_rtl_theme() if h.is_rtl_language() else g.theme %}
       {% asset theme %}
+      <link rel="stylesheet" href="{{ h.url_for_static('/base/css/yamaguchi-hero.css') }}" />
     {% endblock %}
 
     {# render all assets included in styles block #}

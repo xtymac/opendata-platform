@@ -1,0 +1,87 @@
+{% set dataset_type = h.default_package_type() %}
+
+<div class="yamaguchi-hero-section">
+  <div class="yamaguchi-hero-bg">
+    <div class="container">
+      <div class="yamaguchi-hero-content">
+
+        <!-- Main Headline -->
+        <h1 class="yamaguchi-hero-title">Yamaguchi OpenData Platform</h1>
+
+        <!-- Universal Search Bar -->
+        <div class="yamaguchi-search-wrapper">
+          <form class="yamaguchi-search-form" method="get" action="{% url_for dataset_type ~ '.search' %}">
+            <div class="yamaguchi-search-container">
+              <input
+                id="yamaguchi-main-search"
+                type="text"
+                class="yamaguchi-search-input"
+                name="q"
+                value=""
+                autocomplete="off"
+                placeholder="Search datasets, organizations, tags…"
+                aria-label="Search datasets, organizations, and tags"
+              />
+              <button type="submit" class="yamaguchi-search-btn" aria-label="Search">
+                <i class="fa fa-search"></i>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Category Tags -->
+        <div class="yamaguchi-categories">
+          <div class="yamaguchi-category-tags">
+            <a href="{% url_for 'dataset.search', tags='population' %}" class="yamaguchi-tag">
+              <i class="fa fa-users"></i>
+              <span>Population</span>
+            </a>
+            <a href="{% url_for 'dataset.search', tags='health' %}" class="yamaguchi-tag">
+              <i class="fa fa-heartbeat"></i>
+              <span>Health</span>
+            </a>
+            <a href="{% url_for 'dataset.search', tags='environment' %}" class="yamaguchi-tag">
+              <i class="fa fa-leaf"></i>
+              <span>Environment</span>
+            </a>
+            <a href="{% url_for 'dataset.search', tags='transport' %}" class="yamaguchi-tag">
+              <i class="fa fa-car"></i>
+              <span>Transport</span>
+            </a>
+            <a href="{% url_for 'dataset.search', tags='economy' %}" class="yamaguchi-tag">
+              <i class="fa fa-chart-line"></i>
+              <span>Economy</span>
+            </a>
+            <a href="{% url_for 'dataset.search', tags='housing' %}" class="yamaguchi-tag">
+              <i class="fa fa-home"></i>
+              <span>Housing</span>
+            </a>
+            <a href="{% url_for 'dataset.search', tags='social' %}" class="yamaguchi-tag">
+              <i class="fa fa-handshake"></i>
+              <span>Social</span>
+            </a>
+            <a href="{% url_for 'dataset.search', tags='education' %}" class="yamaguchi-tag">
+              <i class="fa fa-graduation-cap"></i>
+              <span>Education</span>
+            </a>
+            <a href="{% url_for 'dataset.search', tags='realtime-apis' %}" class="yamaguchi-tag">
+              <i class="fa fa-bolt"></i>
+              <span>Real-time APIs</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="yamaguchi-stats">
+          <p class="yamaguchi-stats-text">
+            500+ datasets from 20+ government organizations in Yamaguchi Prefecture
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Enhanced Search JavaScript -->
+<script src="{{ h.url_for_static('/base/javascript/yamaguchi-search.js') }}"></script>

@@ -240,9 +240,16 @@ def _get_service(plugin_name: str) -> Plugin:
     >>> assert isinstance(plugin, ActivityPlugin)
     """
     for group in GROUPS:
-        ep = entry_points(group=group, name=plugin_name)
-        if ep:
-            return ep[plugin_name].load()(name=plugin_name)
+        try:
+            # Try new setuptools API first
+            ep = entry_points(group=group, name=plugin_name)
+            if ep:
+                return ep[plugin_name].load()(name=plugin_name)
+        except TypeError:
+            # Fallback to old setuptools API
+            ep = entry_points().get(group, {})
+            if plugin_name in ep:
+                return ep[plugin_name].load()(name=plugin_name)
 
     raise PluginNotFoundException(plugin_name)
 

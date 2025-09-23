@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test CKAN Tags</title>
+    <script>
+        // Test function to check if tags work
+        function testTags() {
+            console.log("Testing tag functionality...");
+
+            // Check if jQuery is loaded
+            if (typeof jQuery !== 'undefined') {
+                console.log("✓ jQuery is loaded: " + jQuery.fn.jquery);
+            } else {
+                console.error("✗ jQuery is not loaded");
+                return;
+            }
+
+            // Check if Select2 is loaded
+            if (typeof jQuery.fn.select2 !== 'undefined') {
+                console.log("✓ Select2 is loaded");
+            } else {
+                console.error("✗ Select2 is not loaded");
+                return;
+            }
+
+            // Check for tag input elements
+            var tagInputs = document.querySelectorAll('input[name="tag_string"], input[data-module="autocomplete"]');
+            if (tagInputs.length > 0) {
+                console.log("✓ Found " + tagInputs.length + " tag input(s)");
+                tagInputs.forEach(function(input, index) {
+                    console.log("  Tag input " + (index + 1) + ":", {
+                        name: input.name,
+                        id: input.id,
+                        value: input.value,
+                        'data-module': input.getAttribute('data-module'),
+                        'data-module-tags': input.getAttribute('data-module-tags'),
+                        'data-module-source': input.getAttribute('data-module-source')
+                    });
+
+                    // Check if Select2 is initialized on this element
+                    if (jQuery(input).data('select2')) {
+                        console.log("  ✓ Select2 is initialized on this input");
+                    } else {
+                        console.warn("  ✗ Select2 is NOT initialized on this input");
+                    }
+                });
+            } else {
+                console.error("✗ No tag input found");
+            }
+
+            // Check for Select2 containers
+            var select2Containers = document.querySelectorAll('.select2-container');
+            if (select2Containers.length > 0) {
+                console.log("✓ Found " + select2Containers.length + " Select2 container(s)");
+            } else {
+                console.warn("✗ No Select2 containers found (might not be initialized yet)");
+            }
+        }
+
+        // Run test when page is loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                setTimeout(testTags, 1000);
+            });
+        } else {
+            setTimeout(testTags, 1000);
+        }
+    </script>
+</head>
+<body>
+    <h1>Tag Testing Instructions</h1>
+    <ol>
+        <li>Open your browser's Developer Console (F12)</li>
+        <li>Navigate to http://localhost:5002/dataset/new</li>
+        <li>Look for tag-related messages in the console</li>
+        <li>Try entering a tag and observe any errors</li>
+    </ol>
+
+    <h2>Common Issues and Solutions:</h2>
+    <ul>
+        <li><strong>Tags disappear immediately:</strong> Usually a JavaScript error or initialization issue</li>
+        <li><strong>Select2 not initialized:</strong> Module loading problem</li>
+        <li><strong>No autocomplete:</strong> API endpoint issue</li>
+    </ul>
+
+    <h2>Manual Fix Attempt:</h2>
+    <p>If tags are not working, you can try this in the browser console:</p>
+    <pre>
+// Force reinitialize Select2 on tag input
+jQuery('input[name="tag_string"]').select2({
+    tags: true,
+    tokenSeparators: [',', ' '],
+    width: '100%',
+    placeholder: 'Enter tags...'
+});
+    </pre>
+</body>
+</html>

@@ -1,0 +1,244 @@
+/* Yamaguchi OpenData Platform Hero Section */
+
+.yamaguchi-hero-section {
+  position: relative;
+  padding: 80px 0 100px;
+  overflow: hidden;
+  margin-bottom: 60px;
+}
+
+.yamaguchi-hero-bg {
+  background: linear-gradient(135deg, #206b82 0%, #3A833A 50%, #0dcaf0 100%);
+  position: relative;
+}
+
+/* Wave Background Effect */
+.yamaguchi-hero-bg::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z' fill='%23ffffff'%3E%3C/path%3E%3C/svg%3E") no-repeat;
+  background-size: cover;
+  z-index: 1;
+}
+
+.yamaguchi-hero-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Main Title */
+.yamaguchi-hero-title {
+  font-size: 3.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 40px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  line-height: 1.2;
+}
+
+/* Search Section */
+.yamaguchi-search-wrapper {
+  margin-bottom: 50px;
+}
+
+.yamaguchi-search-form {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.yamaguchi-search-container {
+  position: relative;
+  display: flex;
+  background: #ffffff;
+  border-radius: 50px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.yamaguchi-search-container:hover {
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.2);
+}
+
+.yamaguchi-search-input {
+  flex: 1;
+  border: none;
+  padding: 20px 30px;
+  font-size: 1.1rem;
+  outline: none;
+  background: transparent;
+  color: #333;
+}
+
+.yamaguchi-search-input::placeholder {
+  color: #999;
+  font-style: italic;
+}
+
+.yamaguchi-search-btn {
+  background: #206b82;
+  border: none;
+  padding: 20px 30px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.yamaguchi-search-btn:hover {
+  background: #1a5a70;
+}
+
+.yamaguchi-search-btn i {
+  font-size: 1.2rem;
+}
+
+/* Category Tags */
+.yamaguchi-categories {
+  margin-bottom: 40px;
+}
+
+.yamaguchi-category-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.yamaguchi-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  color: #ffffff;
+  padding: 12px 20px;
+  border-radius: 25px;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.yamaguchi-tag:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.yamaguchi-tag i {
+  font-size: 1rem;
+}
+
+/* Statistics */
+.yamaguchi-stats {
+  margin-top: 30px;
+}
+
+.yamaguchi-stats-text {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.1rem;
+  font-weight: 400;
+  margin: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .yamaguchi-hero-section {
+    padding: 60px 0 80px;
+  }
+
+  .yamaguchi-hero-title {
+    font-size: 2.5rem;
+    margin-bottom: 30px;
+  }
+
+  .yamaguchi-search-input {
+    padding: 16px 20px;
+    font-size: 1rem;
+  }
+
+  .yamaguchi-search-btn {
+    padding: 16px 20px;
+  }
+
+  .yamaguchi-category-tags {
+    gap: 8px;
+  }
+
+  .yamaguchi-tag {
+    padding: 10px 16px;
+    font-size: 0.85rem;
+  }
+
+  .yamaguchi-stats-text {
+    font-size: 1rem;
+    padding: 0 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .yamaguchi-hero-title {
+    font-size: 2rem;
+  }
+
+  .yamaguchi-search-container {
+    border-radius: 25px;
+  }
+
+  .yamaguchi-search-input {
+    padding: 14px 18px;
+  }
+
+  .yamaguchi-search-btn {
+    padding: 14px 18px;
+  }
+
+  .yamaguchi-tag {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+}
+
+/* Additional Animation Effects */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.pulse-animation {
+  animation: pulse 0.6s ease-in-out;
+}
+
+/* Accessibility improvements */
+.yamaguchi-search-input:focus {
+  outline: 3px solid rgba(32, 107, 130, 0.4);
+  outline-offset: 2px;
+}
+
+.yamaguchi-tag:focus {
+  outline: 3px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+.yamaguchi-search-btn:focus {
+  outline: 3px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}

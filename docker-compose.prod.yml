@@ -1,0 +1,120 @@
+version: '3.8'
+
+services:
+  ckan:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: yamaguchi-ckan
+    environment:
+      - CKAN_SITE_URL=${CKAN_SITE_URL:-http://localhost:5000}
+      - CKAN_SECRET_KEY=${CKAN_SECRET_KEY:-change-this-in-production}
+      - CKAN_SQLALCHEMY_URL=postgresql://ckan_default:${POSTGRES_PASSWORD}@db/ckan_default
+      - CKAN_DATASTORE_WRITE_URL=postgresql://ckan_default:${POSTGRES_PASSWORD}@db/datastore_default
+      - CKAN_DATASTORE_READ_URL=postgresql://datastore_default:${POSTGRES_PASSWORD}@db/datastore_default
+      - CKAN_REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - CKAN_SOLR_URL=${SOLR_URL:-http://solr:8983/solr/ckan}
+      - CKAN_DATAPUSHER_URL=http://datapusher:8800
+      - CKAN_SITE_TITLE=Yamaguchi OpenData Platform
+      - CKAN_SITE_DESCRIPTION=山口県オープンデータプラットフォーム
+      - CKAN_LOCALE_DEFAULT=ja
+    ports:
+      - "${CKAN_PORT:-5000}:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      solr:
+        condition: service_started
+    volumes:
+      - ckan_storage:/var/lib/ckan
+      - ckan_logs:/var/log/ckan
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/3/action/status_show"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  db:
+    image: postgres:15-alpine
+    container_name: yamaguchi-postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-ckan_default}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-this-password}
+      - POSTGRES_DB=${POSTGRES_DB:-ckan_default}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --locale=C.UTF-8
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgresql/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ckan_default}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: yamaguchi-redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  solr:
+    image: ckan/ckan-solr:2.9-solr8
+    container_name: yamaguchi-solr
+    environment:
+      - SOLR_HEAP=1g
+    volumes:
+      - solr_data:/var/solr
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8983/solr/ckan/admin/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  datapusher:
+    image: ckan/ckan-base-datapusher:0.0.20
+    container_name: yamaguchi-datapusher
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8800"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  nginx:
+    image: nginx:alpine
+    container_name: yamaguchi-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - ckan
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  solr_data:
+  ckan_storage:
+  ckan_logs:
+  nginx_logs:
+
+networks:
+  default:
+    name: yamaguchi-network
