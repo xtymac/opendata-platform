@@ -1,0 +1,50 @@
+name: Deploy CKAN
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Validate compose configuration
+        run: docker compose config
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Add host to known_hosts
+        run: |
+          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Prepare remote directory
+        run: |
+          ssh "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" "mkdir -p ${{ secrets.APP_PATH }}"
+
+      - name: Sync repository to server
+        run: |
+          rsync -az --delete --exclude '.git' ./ "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.APP_PATH }}"
+
+      - name: Upload environment file
+        run: |
+          cat <<'ENVFILE' | ssh "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" "cat > ${{ secrets.APP_PATH }}/.env"
+          ${{ secrets.ENV_FILE }}
+          ENVFILE
+
+      - name: Run remote deploy script
+        run: |
+          ssh "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" "cd ${{ secrets.APP_PATH }} && ./deploy.sh"
