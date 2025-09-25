@@ -45,6 +45,12 @@ jobs:
           ${{ secrets.ENV_FILE }}
           ENVFILE
 
+      - name: Write CKAN config
+        run: |
+          cat <<'CKANINI' | ssh "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" "cat > ${{ secrets.APP_PATH }}/ckan.ini"
+          ${{ secrets.CKAN_INI }}
+          CKANINI
+
       - name: Run remote deploy script
         run: |
           ssh "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" "cd ${{ secrets.APP_PATH }} && ./ci-deploy.sh"
