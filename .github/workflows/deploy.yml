@@ -12,7 +12,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Validate compose configuration
-        run: docker compose config
+        run: docker compose -f docker-compose.prod.yml config
 
   deploy:
     needs: test
