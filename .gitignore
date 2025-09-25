@@ -51,3 +51,8 @@ htmlcov/
 .npm
 .test_durations
 .mypy_cache
+
+# Environment files
+.env
+.env.*
+.env.backup
