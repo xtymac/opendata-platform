@@ -28,7 +28,9 @@ services:
       solr:
         condition: service_started
     volumes:
-      - ckan_storage:/var/lib/ckan
+      - ./ckan.ini:/srv/app/ckan.ini:ro
+      - ./who.ini:/srv/app/who.ini:ro
+      - ./storage:/var/lib/ckan
       - ckan_logs:/var/log/ckan
     restart: unless-stopped
     healthcheck:
@@ -46,6 +48,7 @@ services:
       - POSTGRES_DB=${POSTGRES_DB:-ckan_default}
       - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --locale=C.UTF-8
     volumes:
+      - ./ckan.ini:/srv/app/ckan.ini:ro
       - postgres_data:/var/lib/postgresql/data
       - ./postgresql/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     restart: unless-stopped
@@ -60,6 +63,7 @@ services:
     container_name: yamaguchi-redis
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
+      - ./ckan.ini:/srv/app/ckan.ini:ro
       - redis_data:/data
     restart: unless-stopped
     healthcheck:
@@ -74,6 +78,7 @@ services:
     environment:
       - SOLR_HEAP=1g
     volumes:
+      - ./ckan.ini:/srv/app/ckan.ini:ro
       - solr_data:/var/solr
     restart: unless-stopped
     healthcheck:
