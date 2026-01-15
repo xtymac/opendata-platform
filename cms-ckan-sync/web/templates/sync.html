@@ -1,0 +1,676 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">New Sync Job</h2>
+    </div>
+
+    <div id="sync-result" class="alert hidden"></div>
+
+    <form id="flex-sync-form">
+        <div class="two-col">
+            <!-- Source (CMS) -->
+            <div>
+                <h3 style="margin-bottom: 16px; font-size: 1rem;">Source (CMS)</h3>
+
+                <div class="form-group">
+                    <label class="form-label" for="cms-model">Select Model</label>
+                    <select id="cms-model" name="cms_model_id" class="form-select" onchange="onModelChange()">
+                        <option value="">-- Choose a model --</option>
+                        {% for model_id, model_config in config.models.items() %}
+                        <option value="{{ model_id }}">{{ model_config.ckan_dataset.title }} ({{ model_id }})</option>
+                        {% endfor %}
+                        <option value="__custom__">-- Enter custom model ID --</option>
+                    </select>
+                </div>
+
+                <div id="custom-model-group" class="form-group hidden">
+                    <label class="form-label" for="custom-model-id">Custom Model ID</label>
+                    <input type="text" id="custom-model-id" class="form-input" placeholder="Enter CMS model ID">
+                    <div class="form-hint">Enter the model key from your CMS project</div>
+                </div>
+
+                <div id="model-info" class="hidden" style="margin-top: 16px; padding: 12px; background: var(--bg-color); border-radius: 6px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span id="record-count" style="color: var(--text-muted);">Loading...</span>
+                        <button type="button" class="btn btn-secondary" onclick="showPreview()" style="padding: 4px 12px; font-size: 0.75rem;">
+                            Preview Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Target (CKAN) -->
+            <div>
+                <h3 style="margin-bottom: 16px; font-size: 1rem;">Target (CKAN)</h3>
+
+                <div class="form-group">
+                    <label class="form-label">Dataset</label>
+                    <div class="radio-group">
+                        <label class="radio-option" onclick="selectTargetMode('new_dataset')">
+                            <input type="radio" name="target_mode" value="new_dataset" checked>
+                            <div class="radio-content">
+                                <div class="radio-title">Create New Dataset</div>
+                                <div class="radio-desc">Create a new dataset in CKAN</div>
+                            </div>
+                        </label>
+                        <label class="radio-option" onclick="selectTargetMode('existing_dataset')">
+                            <input type="radio" name="target_mode" value="existing_dataset">
+                            <div class="radio-content">
+                                <div class="radio-title">Use Existing Dataset</div>
+                                <div class="radio-desc">Add/update resources in an existing dataset</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- New Dataset Options -->
+                <div id="new-dataset-options">
+                    <div class="form-group">
+                        <label class="form-label" for="dataset-name">Dataset Name</label>
+                        <input type="text" id="dataset-name" name="new_dataset_name" class="form-input"
+                               placeholder="my-dataset-name">
+                        <div class="form-hint">URL-friendly name (lowercase, hyphens)</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="dataset-title">Dataset Title</label>
+                        <input type="text" id="dataset-title" name="new_dataset_title" class="form-input"
+                               placeholder="My Dataset Title">
+                    </div>
+                </div>
+
+                <!-- Existing Dataset Options -->
+                <div id="existing-dataset-options" class="hidden">
+                    <div class="form-group">
+                        <label class="form-label" for="existing-dataset">Select Dataset</label>
+                        <select id="existing-dataset" name="existing_dataset_id" class="form-select" onchange="onDatasetChange()">
+                            <option value="">-- Loading datasets... --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Resource</label>
+                        <div class="radio-group">
+                            <label class="radio-option small" onclick="selectResourceMode('new')">
+                                <input type="radio" name="resource_mode" value="new" checked>
+                                <div class="radio-content">
+                                    <div class="radio-title">Create New Resource</div>
+                                </div>
+                            </label>
+                            <label class="radio-option small" onclick="selectResourceMode('update')">
+                                <input type="radio" name="resource_mode" value="update">
+                                <div class="radio-content">
+                                    <div class="radio-title">Update Existing Resource</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="existing-resource-options" class="form-group hidden">
+                        <label class="form-label" for="existing-resource">Select Resource</label>
+                        <select id="existing-resource" name="existing_resource_id" class="form-select">
+                            <option value="">-- Select a dataset first --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="resource-name">Resource Name</label>
+                    <input type="text" id="resource-name" name="resource_name" class="form-input"
+                           placeholder="data">
+                    <div class="form-hint">Name for the CSV/GeoJSON resource</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Field Mapping (Collapsible) -->
+        <div style="margin-top: 24px;">
+            <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                <span class="collapsible-icon">&#9654;</span>
+                <span>Advanced: Field Mapping</span>
+            </div>
+            <div class="collapsible-content" id="field-mapping-content">
+                <p style="color: var(--text-muted); margin-bottom: 12px; font-size: 0.875rem;">
+                    Customize how CMS fields are mapped to CKAN columns. Select a model first to see available fields.
+                </p>
+                <div id="field-mapping-table">
+                    <p style="color: var(--text-muted); text-align: center;">Select a CMS model to configure field mappings</p>
+                </div>
+            </div>
+        </div>
+
+        <hr style="margin: 24px 0; border: none; border-top: 1px solid var(--border-color);">
+
+        <!-- Options -->
+        <div style="margin-bottom: 20px;">
+            <h4 style="margin-bottom: 12px;">Options</h4>
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" name="dry_run" id="dry-run">
+                    <span>Dry Run (preview without uploading)</span>
+                </label>
+                <label>
+                    <input type="checkbox" name="include_geojson" id="include-geojson" checked>
+                    <span>Include GeoJSON (if geometry data available)</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Progress Bar (Hidden by default) -->
+        <div id="sync-progress" class="progress-container hidden">
+            <div style="margin-bottom: 8px; font-weight: 500;">
+                <span id="progress-status">Preparing...</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
+            </div>
+            <div class="progress-text">
+                <span id="progress-detail">0 records processed</span>
+                <span id="progress-percent">0%</span>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="btn-row right">
+            <button type="button" class="btn btn-secondary" onclick="saveJob()">
+                Save Configuration
+            </button>
+            <button type="submit" id="sync-btn" class="btn btn-primary">
+                <span id="sync-btn-text">Start Sync</span>
+                <span id="sync-btn-loading" class="loading hidden"></span>
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Data Preview Modal -->
+<div id="preview-modal" class="modal-overlay hidden" onclick="closePreviewModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3 class="modal-title">Data Preview</h3>
+            <button class="modal-close" onclick="closePreviewModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="preview-content">
+                <p style="text-align: center; color: var(--text-muted);">Loading preview...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Save Job Modal -->
+<div id="save-job-modal" class="modal-overlay hidden" onclick="closeSaveJobModal(event)">
+    <div class="modal" style="max-width: 400px;" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3 class="modal-title">Save Configuration</h3>
+            <button class="modal-close" onclick="closeSaveJobModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label" for="job-name">Job Name</label>
+                <input type="text" id="job-name" class="form-input" placeholder="My Sync Job">
+            </div>
+            <div class="btn-row right" style="margin-top: 20px;">
+                <button type="button" class="btn btn-secondary" onclick="closeSaveJobModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="confirmSaveJob()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let datasets = [];
+    let currentFields = [];
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadDatasets();
+    });
+
+    // Load CKAN datasets
+    async function loadDatasets() {
+        try {
+            const response = await fetch('api/ckan/datasets');
+            const data = await response.json();
+            datasets = data.datasets || [];
+
+            const select = document.getElementById('existing-dataset');
+            select.innerHTML = '<option value="">-- Choose a dataset --</option>';
+            datasets.forEach(ds => {
+                select.innerHTML += `<option value="${ds.id}">${ds.title} (${ds.name})</option>`;
+            });
+        } catch (error) {
+            console.error('Failed to load datasets:', error);
+        }
+    }
+
+    // Model selection changed
+    async function onModelChange() {
+        const select = document.getElementById('cms-model');
+        const customGroup = document.getElementById('custom-model-group');
+        const modelInfo = document.getElementById('model-info');
+
+        if (select.value === '__custom__') {
+            customGroup.classList.remove('hidden');
+            modelInfo.classList.add('hidden');
+            return;
+        }
+
+        customGroup.classList.add('hidden');
+
+        if (!select.value) {
+            modelInfo.classList.add('hidden');
+            document.getElementById('field-mapping-table').innerHTML =
+                '<p style="color: var(--text-muted); text-align: center;">Select a CMS model to configure field mappings</p>';
+            return;
+        }
+
+        modelInfo.classList.remove('hidden');
+        document.getElementById('record-count').textContent = 'Loading...';
+
+        // Load fields for this model
+        try {
+            const response = await fetch(`api/cms/models/${select.value}/fields`);
+            const data = await response.json();
+
+            if (data.error) {
+                document.getElementById('record-count').textContent = 'Error loading model';
+                return;
+            }
+
+            currentFields = data.fields || [];
+            document.getElementById('record-count').textContent = `${data.total_count || 0} records available`;
+
+            // Update field mapping table
+            updateFieldMappingTable(currentFields);
+
+            // Auto-fill dataset name/title
+            const modelConfig = getSelectedModelConfig();
+            if (modelConfig) {
+                document.getElementById('dataset-name').value = modelConfig.ckan_dataset_name || select.value;
+                document.getElementById('dataset-title').value = modelConfig.ckan_dataset_title || select.options[select.selectedIndex].text.split(' (')[0];
+                document.getElementById('resource-name').value = modelConfig.ckan_dataset_name || select.value;
+            } else {
+                document.getElementById('dataset-name').value = select.value;
+                document.getElementById('dataset-title').value = select.options[select.selectedIndex].text.split(' (')[0];
+                document.getElementById('resource-name').value = select.value;
+            }
+        } catch (error) {
+            console.error('Failed to load fields:', error);
+            document.getElementById('record-count').textContent = 'Error loading model';
+        }
+    }
+
+    function getSelectedModelConfig() {
+        const modelId = document.getElementById('cms-model').value;
+        // This would need to be populated from server-side data
+        return null;
+    }
+
+    // Update field mapping table
+    function updateFieldMappingTable(fields) {
+        if (!fields || fields.length === 0) {
+            document.getElementById('field-mapping-table').innerHTML =
+                '<p style="color: var(--text-muted); text-align: center;">No fields found for this model</p>';
+            return;
+        }
+
+        let html = `
+            <table class="preview-table">
+                <thead>
+                    <tr>
+                        <th>CMS Field</th>
+                        <th>CKAN Column Name</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        fields.forEach((field, index) => {
+            html += `
+                <tr>
+                    <td><code>${field}</code></td>
+                    <td>
+                        <input type="text" class="form-input" style="padding: 6px 10px; font-size: 0.875rem;"
+                               id="mapping-${index}" value="${field}" data-cms-field="${field}">
+                    </td>
+                    <td>
+                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                            <input type="checkbox" id="ignore-${index}" data-cms-field="${field}">
+                            <span style="font-size: 0.875rem;">Ignore</span>
+                        </label>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += '</tbody></table>';
+        document.getElementById('field-mapping-table').innerHTML = html;
+    }
+
+    // Target mode selection
+    function selectTargetMode(mode) {
+        document.querySelector(`input[name="target_mode"][value="${mode}"]`).checked = true;
+
+        if (mode === 'new_dataset') {
+            document.getElementById('new-dataset-options').classList.remove('hidden');
+            document.getElementById('existing-dataset-options').classList.add('hidden');
+        } else {
+            document.getElementById('new-dataset-options').classList.add('hidden');
+            document.getElementById('existing-dataset-options').classList.remove('hidden');
+        }
+
+        // Update radio option styling
+        document.querySelectorAll('input[name="target_mode"]').forEach(radio => {
+            radio.closest('.radio-option').classList.toggle('selected', radio.checked);
+        });
+    }
+
+    // Resource mode selection
+    function selectResourceMode(mode) {
+        document.querySelector(`input[name="resource_mode"][value="${mode}"]`).checked = true;
+
+        if (mode === 'update') {
+            document.getElementById('existing-resource-options').classList.remove('hidden');
+        } else {
+            document.getElementById('existing-resource-options').classList.add('hidden');
+        }
+
+        // Update radio option styling
+        document.querySelectorAll('input[name="resource_mode"]').forEach(radio => {
+            radio.closest('.radio-option').classList.toggle('selected', radio.checked);
+        });
+    }
+
+    // Dataset selection changed - load resources
+    async function onDatasetChange() {
+        const datasetId = document.getElementById('existing-dataset').value;
+        const resourceSelect = document.getElementById('existing-resource');
+
+        if (!datasetId) {
+            resourceSelect.innerHTML = '<option value="">-- Select a dataset first --</option>';
+            return;
+        }
+
+        resourceSelect.innerHTML = '<option value="">Loading resources...</option>';
+
+        try {
+            const response = await fetch(`api/ckan/datasets/${datasetId}/resources`);
+            const data = await response.json();
+            const resources = data.resources || [];
+
+            resourceSelect.innerHTML = '<option value="">-- Choose a resource --</option>';
+            resources.forEach(res => {
+                resourceSelect.innerHTML += `<option value="${res.id}">${res.name} (${res.format})</option>`;
+            });
+        } catch (error) {
+            console.error('Failed to load resources:', error);
+            resourceSelect.innerHTML = '<option value="">Error loading resources</option>';
+        }
+    }
+
+    // Toggle collapsible section
+    function toggleCollapsible(header) {
+        header.classList.toggle('open');
+        const content = header.nextElementSibling;
+        content.classList.toggle('open');
+    }
+
+    // Show data preview modal
+    async function showPreview() {
+        const modal = document.getElementById('preview-modal');
+        const content = document.getElementById('preview-content');
+        modal.classList.remove('hidden');
+        content.innerHTML = '<p style="text-align: center; color: var(--text-muted);">Loading preview...</p>';
+
+        let modelId = document.getElementById('cms-model').value;
+        if (modelId === '__custom__') {
+            modelId = document.getElementById('custom-model-id').value;
+        }
+
+        if (!modelId) {
+            content.innerHTML = '<p style="text-align: center; color: var(--error-color);">Please select a model first</p>';
+            return;
+        }
+
+        try {
+            const response = await fetch(`api/cms/models/${modelId}/preview`);
+            const data = await response.json();
+
+            if (data.error) {
+                content.innerHTML = `<p style="text-align: center; color: var(--error-color);">${data.error}</p>`;
+                return;
+            }
+
+            const records = data.records || [];
+            if (records.length === 0) {
+                content.innerHTML = '<p style="text-align: center; color: var(--text-muted);">No records found</p>';
+                return;
+            }
+
+            // Build preview table
+            const fields = Object.keys(records[0]);
+            let html = `
+                <p style="margin-bottom: 12px; color: var(--text-muted);">Showing ${records.length} of ${data.total_count} records</p>
+                <div style="overflow-x: auto;">
+                    <table class="preview-table">
+                        <thead>
+                            <tr>
+                                ${fields.map(f => `<th>${f}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            records.forEach(record => {
+                html += '<tr>';
+                fields.forEach(f => {
+                    let val = record[f];
+                    if (typeof val === 'object') {
+                        val = JSON.stringify(val);
+                    }
+                    if (val && val.length > 50) {
+                        val = val.substring(0, 50) + '...';
+                    }
+                    html += `<td>${val || '-'}</td>`;
+                });
+                html += '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+            content.innerHTML = html;
+        } catch (error) {
+            content.innerHTML = `<p style="text-align: center; color: var(--error-color);">Error: ${error.message}</p>`;
+        }
+    }
+
+    function closePreviewModal(event) {
+        if (!event || event.target === event.currentTarget) {
+            document.getElementById('preview-modal').classList.add('hidden');
+        }
+    }
+
+    // Save job modal
+    function saveJob() {
+        document.getElementById('save-job-modal').classList.remove('hidden');
+        document.getElementById('job-name').focus();
+    }
+
+    function closeSaveJobModal(event) {
+        if (!event || event.target === event.currentTarget) {
+            document.getElementById('save-job-modal').classList.add('hidden');
+        }
+    }
+
+    async function confirmSaveJob() {
+        const jobName = document.getElementById('job-name').value.trim();
+        if (!jobName) {
+            alert('Please enter a job name');
+            return;
+        }
+
+        const config = buildSyncConfig();
+        if (!config) return;
+
+        try {
+            const response = await fetch('api/jobs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: jobName,
+                    config: config
+                })
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                alert('Job saved successfully!');
+                closeSaveJobModal();
+            } else {
+                alert(data.detail || 'Failed to save job');
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    // Build sync configuration from form
+    function buildSyncConfig() {
+        let cmsModelId = document.getElementById('cms-model').value;
+        if (cmsModelId === '__custom__') {
+            cmsModelId = document.getElementById('custom-model-id').value;
+        }
+
+        if (!cmsModelId) {
+            alert('Please select a CMS model');
+            return null;
+        }
+
+        const targetMode = document.querySelector('input[name="target_mode"]:checked').value;
+        const resourceMode = document.querySelector('input[name="resource_mode"]:checked').value;
+
+        // Build field mappings
+        const fieldMappings = [];
+        document.querySelectorAll('#field-mapping-table input[data-cms-field]').forEach(input => {
+            const cmsField = input.dataset.cmsField;
+            if (input.type === 'checkbox') return; // Skip ignore checkboxes
+
+            const ignoreCheckbox = document.querySelector(`input[type="checkbox"][data-cms-field="${cmsField}"]`);
+            const isIgnored = ignoreCheckbox && ignoreCheckbox.checked;
+
+            fieldMappings.push({
+                cms_field: cmsField,
+                ckan_field: isIgnored ? null : input.value
+            });
+        });
+
+        const config = {
+            cms_model_id: cmsModelId,
+            field_mappings: fieldMappings,
+            target_mode: targetMode,
+            resource_mode: resourceMode,
+            dry_run: document.getElementById('dry-run').checked,
+            include_geojson: document.getElementById('include-geojson').checked,
+            resource_name: document.getElementById('resource-name').value || cmsModelId
+        };
+
+        if (targetMode === 'new_dataset') {
+            config.new_dataset_name = document.getElementById('dataset-name').value;
+            config.new_dataset_title = document.getElementById('dataset-title').value;
+        } else {
+            config.existing_dataset_id = document.getElementById('existing-dataset').value;
+            if (resourceMode === 'update') {
+                config.existing_resource_id = document.getElementById('existing-resource').value;
+            }
+        }
+
+        return config;
+    }
+
+    // Form submission
+    document.getElementById('flex-sync-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const btn = document.getElementById('sync-btn');
+        const btnText = document.getElementById('sync-btn-text');
+        const btnLoading = document.getElementById('sync-btn-loading');
+        const resultDiv = document.getElementById('sync-result');
+        const progressDiv = document.getElementById('sync-progress');
+
+        const config = buildSyncConfig();
+        if (!config) return;
+
+        // Validation
+        if (config.target_mode === 'new_dataset' && !config.new_dataset_name) {
+            resultDiv.className = 'alert alert-error';
+            resultDiv.textContent = 'Please enter a dataset name';
+            resultDiv.classList.remove('hidden');
+            return;
+        }
+
+        if (config.target_mode === 'existing_dataset' && !config.existing_dataset_id) {
+            resultDiv.className = 'alert alert-error';
+            resultDiv.textContent = 'Please select a dataset';
+            resultDiv.classList.remove('hidden');
+            return;
+        }
+
+        // Disable button and show loading
+        btn.disabled = true;
+        btnText.textContent = 'Syncing...';
+        btnLoading.classList.remove('hidden');
+        resultDiv.classList.add('hidden');
+        progressDiv.classList.remove('hidden');
+
+        // Reset progress
+        document.getElementById('progress-fill').style.width = '0%';
+        document.getElementById('progress-status').textContent = 'Starting sync...';
+        document.getElementById('progress-detail').textContent = '0 records processed';
+        document.getElementById('progress-percent').textContent = '0%';
+
+        try {
+            const response = await fetch('api/sync/flexible', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            });
+
+            const data = await response.json();
+
+            // Update progress to 100%
+            document.getElementById('progress-fill').style.width = '100%';
+            document.getElementById('progress-percent').textContent = '100%';
+
+            resultDiv.classList.remove('hidden', 'alert-success', 'alert-error');
+            if (data.success) {
+                resultDiv.classList.add('alert-success');
+                document.getElementById('progress-status').textContent = 'Completed!';
+                document.getElementById('progress-detail').textContent = `${data.records_transformed || 0} records synced`;
+                resultDiv.textContent = data.message || 'Sync completed successfully!';
+            } else {
+                resultDiv.classList.add('alert-error');
+                document.getElementById('progress-status').textContent = 'Failed';
+                resultDiv.textContent = data.message || data.detail || 'Sync failed';
+            }
+        } catch (error) {
+            resultDiv.classList.remove('hidden');
+            resultDiv.classList.add('alert-error');
+            resultDiv.textContent = 'Error: ' + error.message;
+            document.getElementById('progress-status').textContent = 'Error';
+        } finally {
+            btn.disabled = false;
+            btnText.textContent = 'Start Sync';
+            btnLoading.classList.add('hidden');
+        }
+    });
+
+    // Initialize radio option styling
+    document.querySelectorAll('.radio-option input[type="radio"]').forEach(radio => {
+        radio.closest('.radio-option').classList.toggle('selected', radio.checked);
+    });
+</script>
+{% endblock %}

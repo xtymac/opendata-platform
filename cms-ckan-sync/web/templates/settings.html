@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">API Configuration</h2>
+    </div>
+
+    <div id="settings-result" class="alert hidden"></div>
+
+    <form id="settings-form">
+        <div class="two-col">
+            <!-- CMS Configuration -->
+            <div>
+                <h3 style="margin-bottom: 16px; font-size: 1rem;">CMS Configuration</h3>
+
+                <div class="form-group">
+                    <label class="form-label" for="cms-url">Base URL</label>
+                    <input type="text" id="cms-url" name="cms_url" class="form-input"
+                           placeholder="https://api.cms.reearth.io/api/p/{workspace}/{project}"
+                           value="{{ config.cms_base_url or '' }}">
+                    <div class="form-hint">Re:Earth CMS Public API endpoint</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="cms-token">API Token (optional)</label>
+                    <input type="password" id="cms-token" name="cms_token" class="form-input"
+                           placeholder="Leave empty for public projects"
+                           value="{{ '***' if config.cms_token else '' }}">
+                    <div class="form-hint">Required only for private projects</div>
+                </div>
+
+                <button type="button" id="test-cms-btn" class="btn btn-secondary" onclick="testCMS()">
+                    Test CMS Connection
+                </button>
+                <span id="cms-status" class="status-badge hidden" style="margin-left: 10px;"></span>
+            </div>
+
+            <!-- CKAN Configuration -->
+            <div>
+                <h3 style="margin-bottom: 16px; font-size: 1rem;">CKAN Configuration</h3>
+
+                <div class="form-group">
+                    <label class="form-label" for="ckan-url">CKAN URL</label>
+                    <input type="text" id="ckan-url" name="ckan_url" class="form-input"
+                           placeholder="https://opendata.uixai.org"
+                           value="{{ config.ckan_url or '' }}">
+                    <div class="form-hint">Your CKAN instance URL</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="ckan-token">API Token</label>
+                    <input type="password" id="ckan-token" name="ckan_token" class="form-input"
+                           placeholder="CKAN API Token"
+                           value="{{ '***' if config.ckan_token else '' }}">
+                    <div class="form-hint">Generate from CKAN user settings</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="ckan-org">Organization</label>
+                    <input type="text" id="ckan-org" name="ckan_organization" class="form-input"
+                           placeholder="organization-name"
+                           value="{{ config.ckan_organization or '' }}">
+                    <div class="form-hint">Target organization for datasets</div>
+                </div>
+
+                <button type="button" id="test-ckan-btn" class="btn btn-secondary" onclick="testCKAN()">
+                    Test CKAN Connection
+                </button>
+                <span id="ckan-status" class="status-badge hidden" style="margin-left: 10px;"></span>
+            </div>
+        </div>
+
+        <hr style="margin: 24px 0; border: none; border-top: 1px solid var(--border-color);">
+
+        <div class="btn-row right">
+            <button type="button" class="btn btn-secondary" onclick="resetForm()">Reset</button>
+            <button type="submit" id="save-btn" class="btn btn-primary">
+                <span id="save-btn-text">Save Settings</span>
+                <span id="save-btn-loading" class="loading hidden"></span>
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- CMS Models Configuration -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Configured Models</h2>
+    </div>
+
+    <p style="color: var(--text-muted); margin-bottom: 16px;">
+        These models are configured in <code>config/models.yaml</code>.
+        You can add new models by editing this file.
+    </p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Model ID</th>
+                <th>CMS Model</th>
+                <th>CKAN Dataset</th>
+                <th>Geometry Field</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for model_id, model_config in config.models.items() %}
+            <tr>
+                <td><strong>{{ model_id }}</strong></td>
+                <td>{{ model_config.cms_model_id }}</td>
+                <td>{{ model_config.ckan_dataset.name }}</td>
+                <td>{{ model_config.geometry_field or '-' }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" style="text-align: center; color: var(--text-muted);">
+                    No models configured yet
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Test CMS Connection
+    async function testCMS() {
+        const btn = document.getElementById('test-cms-btn');
+        const status = document.getElementById('cms-status');
+
+        btn.disabled = true;
+        btn.textContent = 'Testing...';
+        status.classList.add('hidden');
+
+        try {
+            const response = await fetch('api/config/test-cms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    url: document.getElementById('cms-url').value,
+                    token: document.getElementById('cms-token').value
+                })
+            });
+            const data = await response.json();
+
+            status.classList.remove('hidden', 'status-success', 'status-failed');
+            if (data.success) {
+                status.classList.add('status-success');
+                status.textContent = 'Connected';
+            } else {
+                status.classList.add('status-failed');
+                status.textContent = data.message || 'Failed';
+            }
+        } catch (error) {
+            status.classList.remove('hidden');
+            status.classList.add('status-failed');
+            status.textContent = 'Error';
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Test CMS Connection';
+        }
+    }
+
+    // Test CKAN Connection
+    async function testCKAN() {
+        const btn = document.getElementById('test-ckan-btn');
+        const status = document.getElementById('ckan-status');
+
+        btn.disabled = true;
+        btn.textContent = 'Testing...';
+        status.classList.add('hidden');
+
+        try {
+            const response = await fetch('api/config/test-ckan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    url: document.getElementById('ckan-url').value,
+                    token: document.getElementById('ckan-token').value,
+                    organization: document.getElementById('ckan-org').value
+                })
+            });
+            const data = await response.json();
+
+            status.classList.remove('hidden', 'status-success', 'status-failed');
+            if (data.success) {
+                status.classList.add('status-success');
+                status.textContent = 'Connected';
+            } else {
+                status.classList.add('status-failed');
+                status.textContent = data.message || 'Failed';
+            }
+        } catch (error) {
+            status.classList.remove('hidden');
+            status.classList.add('status-failed');
+            status.textContent = 'Error';
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Test CKAN Connection';
+        }
+    }
+
+    // Save Settings
+    document.getElementById('settings-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const btn = document.getElementById('save-btn');
+        const btnText = document.getElementById('save-btn-text');
+        const btnLoading = document.getElementById('save-btn-loading');
+        const resultDiv = document.getElementById('settings-result');
+
+        btn.disabled = true;
+        btnText.textContent = 'Saving...';
+        btnLoading.classList.remove('hidden');
+        resultDiv.classList.add('hidden');
+
+        try {
+            const cmsToken = document.getElementById('cms-token').value;
+            const ckanToken = document.getElementById('ckan-token').value;
+
+            const response = await fetch('api/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    cms_url: document.getElementById('cms-url').value,
+                    cms_token: cmsToken === '***' ? null : cmsToken,  // Don't update if unchanged
+                    ckan_url: document.getElementById('ckan-url').value,
+                    ckan_token: ckanToken === '***' ? null : ckanToken,
+                    ckan_organization: document.getElementById('ckan-org').value
+                })
+            });
+
+            const data = await response.json();
+
+            resultDiv.classList.remove('hidden', 'alert-success', 'alert-error');
+            if (response.ok) {
+                resultDiv.classList.add('alert-success');
+                resultDiv.textContent = 'Settings saved successfully!';
+            } else {
+                resultDiv.classList.add('alert-error');
+                resultDiv.textContent = data.detail || 'Failed to save settings';
+            }
+        } catch (error) {
+            resultDiv.classList.remove('hidden');
+            resultDiv.classList.add('alert-error');
+            resultDiv.textContent = 'Error: ' + error.message;
+        } finally {
+            btn.disabled = false;
+            btnText.textContent = 'Save Settings';
+            btnLoading.classList.add('hidden');
+        }
+    });
+
+    // Reset Form
+    function resetForm() {
+        location.reload();
+    }
+</script>
+{% endblock %}

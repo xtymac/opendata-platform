@@ -1,0 +1,5 @@
+include README.md
+include requirements.txt
+include QUICKSTART.md
+include HARVEST_CONFIG_EXAMPLES.md
+recursive-include ckanext/plateau_harvester *.json

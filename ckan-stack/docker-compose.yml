@@ -1,0 +1,183 @@
+services:
+  db:
+    image: postgres:14
+    container_name: ckan-db
+    environment:
+      POSTGRES_DB: ckan_default
+      POSTGRES_USER: ckan_default
+      POSTGRES_PASSWORD: ckan_default
+    volumes:
+      - /var/lib/ckan/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ckan_default"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:6
+    container_name: ckan-redis
+    restart: unless-stopped
+
+  solr:
+    image: ckan/ckan-solr:2.11-solr9
+    container_name: ckan-solr
+    environment:
+      SOLR_CORE: ckan
+    volumes:
+      - solr_data:/var/solr
+    restart: unless-stopped
+
+  datapusher:
+    image: ckan/ckan-base-datapusher:0.0.20
+    container_name: ckan-datapusher
+    environment:
+      DATAPUSHER_PORT: "8800"
+    restart: unless-stopped
+
+  ckan:
+    image: ckan/ckan-base:2.11.3-py3.10
+    container_name: ckan
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      solr:
+        condition: service_started
+      datapusher:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      CKAN_SITE_URL: https://opendata.uixai.org
+      CKAN__SITE_URL: https://opendata.uixai.org
+      CKAN_INI: /srv/app/ckan.ini
+      CKAN_STORAGE_PATH: /var/lib/ckan
+      CKAN__STORAGE__PATH: /var/lib/ckan
+      CKAN_SQLALCHEMY_URL: postgresql://ckan_default:ckan_default@db/ckan_default
+      CKAN__SQLALCHEMY__URL: postgresql://ckan_default:ckan_default@db/ckan_default
+      CKAN_DATASTORE_WRITE_URL: postgresql://ckan_default:ckan_default@db/datastore_default
+      CKAN__DATASTORE__WRITE_URL: postgresql://ckan_default:ckan_default@db/datastore_default
+      CKAN_DATASTORE_READ_URL: postgresql://datastore_default:datastore_default@db/datastore_default
+      CKAN__DATASTORE__READ_URL: postgresql://datastore_default:datastore_default@db/datastore_default
+      CKAN_SOLR_URL: http://solr:8983/solr/ckan
+      CKAN__SEARCH__SOLR_URL: http://solr:8983/solr/ckan
+      CKAN_REDIS_URL: redis://redis:6379/0
+      CKAN__REDIS__URL: redis://redis:6379/0
+      CKAN_DATAPUSHER_URL: http://datapusher:8800
+      CKAN__DATAPUSHER__URL: http://datapusher:8800
+      CKAN__DATAPUSHER__CALLBACK_URL_BASE: http://ckan:5000
+      CKAN__DATAPUSHER__API_TOKEN: ${CKAN__DATAPUSHER__API_TOKEN}
+      CKAN__CONTENT__SECURITY__POLICY: "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob:; connect-src 'self' data: blob:; font-src 'self' https://cdn.jsdelivr.net; frame-src 'self'"
+      CKAN__PLUGINS: envvars datastore resource_proxy image_view text_view datatables_view geo_view simple_map recline_view recline_graph_view datapusher harvest dcat dcat_rdf_harvester dcat_json_harvester dcat_json_interface structured_data mlit_harvester csv_file_harvester fiware_orion_harvester cesium_viewer assistant
+      CKAN__VIEWS__DEFAULT_VIEWS: image_view text_view datatables_view simple_map geo_view
+      CKAN__FEATURED_GROUPS: travel bousai-anzen
+      CKAN__BEAKER__SESSION__SECRET: ${CKAN_BEAKER_SESSION_SECRET}
+      CKAN__APP__SECRET_KEY: ${CKAN_APP_SECRET_KEY}
+      CKAN__SECRET_KEY: ${CKAN__SECRET_KEY}
+      CKAN__WTF__CSRF__SECRET_KEY: ${CKAN__WTF__CSRF__SECRET_KEY}
+      CKAN__API_TOKEN__JWT__ENCODE__SECRET: ${CKAN__API_TOKEN__JWT__SECRET}
+      CKAN__API_TOKEN__JWT__DECODE__SECRET: ${CKAN__API_TOKEN__JWT__SECRET}
+      CKAN__UPLOAD__ADMIN__TYPES: "image"
+      CKAN__UPLOAD__ADMIN__MIMETYPES: "image/png image/jpeg image/svg+xml image/gif"
+      CKAN__LOCALE__DEFAULT: ja
+      CKAN__LOCALES__OFFERED: "ja en"
+      CKAN__HARVEST__MQ__TYPE: redis
+      CKAN__HARVEST__MQ__REDIS__URL: redis://redis:6379/1
+      CKAN__HARVEST__USER_AGENT: CKAN Harvest Agent
+      CKAN__MLIT__API_KEY: ${CKAN__MLIT__API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      EXTRA_UWSGI_OPTS: ""
+    volumes:
+      - /var/lib/ckan/storage:/var/lib/ckan
+      - ./docker-entrypoint.d:/docker-entrypoint.d:ro
+      - ./extensions/ckanext-harvest:/srv/app/src/ckanext-harvest
+      - ./extensions/ckanext-mlit_harvester:/srv/app/src/ckanext-mlit_harvester
+      - ./extensions/ckanext-fiware-orion:/srv/app/src/ckanext-fiware-orion
+      - ./extensions/ckanext-assistant:/srv/app/src/ckanext-assistant
+      - ./extensions/ckanext-simplemap:/srv/app/src/ckanext-simplemap
+      - ./extensions/ckanext-cesium_viewer:/srv/app/src/ckanext-cesium_viewer
+      - ./extensions/ckanext-timeseries:/srv/app/src/ckanext-timeseries
+      - ./extensions/ckanext-reclineview:/srv/app/src/ckanext-reclineview
+      - ./.ckan-local:/srv/app/.local
+      - ./webmaps:/srv/app/webmaps
+    restart: unless-stopped
+
+  assistant:
+    build: ./assistant-service
+    container_name: ckan-assistant
+    depends_on:
+      ckan:
+        condition: service_started
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      CKAN_BASE_URL: http://ckan:5000
+      CKAN_SITE_URL: https://opendata.uixai.org
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+      SSH_ASSISTANT_TOOL: ${SSH_ASSISTANT_TOOL:-python /scripts/ssh_readonly.py}
+      SSH_ASSISTANT_ALLOWED_ROOTS: ${SSH_ASSISTANT_ALLOWED_ROOTS:-/var/log:/etc:/srv/app}
+      SSH_ASSISTANT_HOST: ${SSH_ASSISTANT_HOST:-}
+      SSH_ASSISTANT_USERNAME: ${SSH_ASSISTANT_USERNAME:-ubuntu}
+      SSH_ASSISTANT_KEY_PATH: ${SSH_ASSISTANT_KEY_PATH:-}
+      SSH_ASSISTANT_KNOWN_HOSTS: ${SSH_ASSISTANT_KNOWN_HOSTS:-}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./scripts:/scripts:ro
+      - ./secrets:/secrets:ro
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: ckan-nginx
+    depends_on:
+      ckan:
+        condition: service_started
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./webmaps:/usr/share/nginx/html/3d:ro
+    ports:
+      - "80:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:4.4
+    container_name: fiware-mongo
+    command: --nojournal
+    environment:
+      MONGO_INITDB_DATABASE: orion
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  orion:
+    image: fiware/orion-ld:1.5.1
+    container_name: fiware-orion
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "1026:1026"
+    command: -dbhost mongo -logLevel DEBUG -forwarding -experimental
+    environment:
+      ORIONLD_MONGO_HOST: mongo
+      ORIONLD_LOG_LEVEL: DEBUG
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1026/version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  solr_data:
+  mongo_data:

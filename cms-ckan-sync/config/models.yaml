@@ -1,0 +1,68 @@
+# CMS-CKAN Sync Service - Model Configuration
+# Each model defines how to sync data from a CMS model to a CKAN dataset
+
+# Note: These are the target models for the Open Data Template project.
+# The actual CMS models need to be created in Re:Earth CMS first.
+
+models:
+  # Target models (using CMS Model Keys for Public API)
+  public_facility:
+    cms_model_id: public_facility
+    webhook_model_keys:  # CMS webhook 中的 model.key 值
+      - facilities-for-citizens
+    ckan_dataset:
+      name: public-facilities
+      title: "Public Facilities"
+      notes: |
+        Public facility data synchronized from Re:Earth CMS.
+        This dataset includes information about public facilities
+        such as government offices, community centers, and public services.
+      license_id: cc-by
+      tags:
+        - name: public-facility
+        - name: infrastructure
+        - name: cms-sync
+        - name: open-data
+    field_mappings: {}
+    geometry_field: location
+    exclude_fields:
+      - __reearth_metadata
+
+  childcare_facilities:
+    cms_model_id: childcare_facilities
+    webhook_model_keys:  # CMS webhook 中的 model.key 值 - 需要确认实际值
+      - childcare_facilities
+      - childcare
+    ckan_dataset:
+      name: childcare-facilities
+      title: "Childcare Facilities"
+      notes: |
+        Childcare facility data synchronized from Re:Earth CMS.
+        This dataset includes information about nurseries, kindergartens,
+        daycare centers, and other childcare services.
+      license_id: cc-by
+      tags:
+        - name: childcare
+        - name: education
+        - name: cms-sync
+        - name: open-data
+    field_mappings: {}
+    geometry_field: location
+    exclude_fields:
+      - __reearth_metadata
+
+  # Test model (for validation - uses existing CMS data)
+  # This can be removed after testing
+  # imaginary_cities:
+  #   cms_model_id: imaginary-cities/city
+  #   ckan_dataset:
+  #     name: imaginary-cities-test
+  #     title: "Imaginary Cities (Test)"
+  #     notes: "Test dataset using imaginary cities data"
+  #     license_id: cc-by
+  #     tags:
+  #       - name: test
+  #       - name: cms-sync
+  #   field_mappings: {}
+  #   geometry_field: null
+  #   exclude_fields: []

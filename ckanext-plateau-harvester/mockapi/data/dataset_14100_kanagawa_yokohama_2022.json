@@ -1,0 +1,62 @@
+{
+  "id": "14100_kanagawa_yokohama_2022",
+  "title": "神奈川県横浜市 3D都市モデル (2022年度)",
+  "description": "横浜市の3D都市モデルデータ。CityGMLとGeoJSON形式で提供。建築物、道路、土地利用データを含みます。",
+  "city": "横浜市",
+  "prefecture": "神奈川県",
+  "year": 2022,
+  "modelType": "CityGML",
+  "specVersion": "2.0",
+  "themes": ["建築物", "道路", "土地利用", "洪水浸水想定区域"],
+  "bbox": [139.6217, 35.4437, 139.6517, 35.4737],
+  "license": "CC-BY-4.0",
+  "source": "PLATEAU/MLIT",
+  "createdAt": "2022-04-01T00:00:00Z",
+  "updatedAt": "2023-10-20T09:15:00Z",
+  "resources": [
+    {
+      "url": "https://example.plateau.jp/data/14100/bldg/14100_yokohama_bldg_2022.gml",
+      "name": "建築物モデル（Building）",
+      "description": "LOD1建築物データ",
+      "format": "CityGML",
+      "mediaType": "application/xml",
+      "size": 20971520
+    },
+    {
+      "url": "https://example.plateau.jp/data/14100/tran/14100_yokohama_tran_2022.gml",
+      "name": "道路モデル（Transportation）",
+      "description": "道路ネットワークデータ",
+      "format": "CityGML",
+      "mediaType": "application/xml",
+      "size": 5242880
+    },
+    {
+      "url": "https://example.plateau.jp/data/14100/luse/14100_yokohama_luse_2022.gml",
+      "name": "土地利用モデル（LandUse）",
+      "description": "土地利用分類データ",
+      "format": "CityGML",
+      "mediaType": "application/xml",
+      "size": 4194304
+    },
+    {
+      "url": "https://example.plateau.jp/data/14100/fld/14100_yokohama_fld_2022.geojson",
+      "name": "洪水浸水想定区域（GeoJSON）",
+      "description": "洪水ハザードマップデータ",
+      "format": "GeoJSON",
+      "mediaType": "application/geo+json",
+      "size": 2097152
+    },
+    {
+      "url": "https://example.plateau.jp/data/14100/csv/14100_yokohama_bldg_attributes.csv",
+      "name": "建築物属性データ（CSV）",
+      "description": "建築物の属性情報（用途、構造、建築年等）",
+      "format": "CSV",
+      "mediaType": "text/csv",
+      "size": 524288
+    }
+  ],
+  "contact": {
+    "name": "横浜市都市整備局",
+    "email": "tb-toshiseibi@city.yokohama.lg.jp"
+  }
+}

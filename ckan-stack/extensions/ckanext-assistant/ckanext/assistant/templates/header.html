@@ -1,0 +1,88 @@
+{% ckan_extends %}
+
+{% block header_wrapper %}
+  <div id="system-status-banner" class="system-uptime-banner" style="background-color: #28a745; color: white; text-align: center; padding: 8px; font-weight: bold; font-size: 14px; position: relative; z-index: 1000; display: none;">
+    <span id="banner-content">
+      <i class="fa fa-clock-o"></i> {{ _('Start time: Daily at 08:00 JST') }} &nbsp;|&nbsp;
+      <i class="fa fa-stop-circle-o"></i> {{ _('Stop time: Daily at 22:00 JST') }}
+    </span>
+  </div>
+  <script>
+    (function() {
+      // Get translated strings from hidden elements or data attributes
+      // CKAN renders the template on server side, so we can use Jinja2 _()
+      var STRINGS = {
+         start: "{{ _('Start time: Daily at 08:00 JST') }}",
+         stop: "{{ _('Stop time: Daily at 22:00 JST') }}",
+         shutdown_msg: "{{ _('System will shutdown in') }}"
+      };
+
+      function updateBanner() {
+        var banner = document.getElementById('system-status-banner');
+        var contentSpan = document.getElementById('banner-content');
+        if (!banner || !contentSpan) return;
+
+        var now = new Date();
+        // Calculate JST time (UTC+9)
+        var jstOffset = 9 * 60; // minutes
+        var utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+        var jstTotalMinutes = (utcMinutes + jstOffset) % (24 * 60);
+        var jstSeconds = now.getUTCSeconds();
+
+        // Check if within 15 minutes of 22:00 JST
+        // 22:00 is 22 * 60 = 1320 minutes
+        // Warning starts at 1320 - 15 = 1305 minutes (21:45)
+        
+        var totalSecondsJST = jstTotalMinutes * 60 + jstSeconds;
+        var stopTimeSeconds = 22 * 60 * 60; // 22:00:00
+        var warningThresholdSeconds = stopTimeSeconds - (15 * 60); // 15 minutes before
+
+        if (totalSecondsJST >= warningThresholdSeconds && totalSecondsJST < stopTimeSeconds) {
+           var diff = stopTimeSeconds - totalSecondsJST;
+           var m = Math.floor(diff / 60);
+           var s = diff % 60;
+           // Pad zero for seconds
+           s = s < 10 ? '0' + s : s;
+           
+           banner.style.backgroundColor = '#dc3545'; // Red
+           contentSpan.innerHTML = '<i class="fa fa-exclamation-triangle"></i> ' + STRINGS.shutdown_msg + ' ' + m + ':' + s;
+        } else {
+           // Normal state
+           banner.style.backgroundColor = '#28a745'; // Green
+           contentSpan.innerHTML = '<i class="fa fa-clock-o"></i> ' + STRINGS.start + ' &nbsp;|&nbsp; <i class="fa fa-stop-circle-o"></i> ' + STRINGS.stop;
+        }
+        banner.style.display = 'block';
+      }
+
+      setInterval(updateBanner, 1000);
+      updateBanner();
+    })();
+  </script>
+  {{ super() }}
+{% endblock %}
+
+{% block header_account_container_content %}
+  <div class="account-language-wrapper">
+    <div class="account-language-main">
+      {{ super() }}
+    </div>
+    <div class="account-language-selector">
+      {% set current_lang = request.environ.CKAN_LANG %}
+      <form class="lang-select lang-select--masthead" action="{% url_for 'util.internal_redirect' %}" method="POST">
+        {{ h.csrf_input() }}
+        <label for="masthead-lang-select" class="visually-hidden">{{ _('Language') }}</label>
+        <button type="submit" class="btn btn-link masthead-lang-trigger" title="{{ _('Change language') }}" onclick="this.closest('form').querySelector('select').setAttribute('data-submit','1');">
+          <i class="fa fa-globe" aria-hidden="true"></i>
+          <span class="sr-only">{{ _('Toggle language menu') }}</span>
+        </button>
+        <select id="masthead-lang-select" name="url" class="masthead-lang-select" onchange="this.form.submit();">
+          {% for locale in h.get_available_locales() %}
+            <option value="{% url_for h.current_url(), locale=locale.short_name %}" {% if locale.short_name == current_lang %}selected="selected"{% endif %}>
+              {{ locale.display_name or locale.english_name }}
+            </option>
+          {% endfor %}
+        </select>
+      </form>
+    </div>
+  </div>
+{% endblock %}

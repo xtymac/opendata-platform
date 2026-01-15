@@ -1,0 +1,35 @@
+{
+  "ckan_url": "http://localhost",
+  "api_key": "REPLACE_WITH_API_KEY",
+  "owner_org": "city-gis",
+  "dataset": {
+    "name": "dragon-3d-tiles",
+    "title": "Dragon 3D Tiles Demo",
+    "notes": "Sample Cesium 3D Tiles dataset packaged for CKAN integration testing.",
+    "tags": ["3d", "cesium", "demo"],
+    "extras": {
+      "lod_available": "2",
+      "source": "Cesium 3D Tiles Samples"
+    }
+  },
+  "resources": [
+    {
+      "name": "3D Viewer",
+      "url": "http://localhost/3d/dragon/index.html",
+      "format": "HTML",
+      "mimetype": "text/html",
+      "description": "Embedded Cesium web map exported from the sample dataset."
+    },
+    {
+      "name": "Cesium Tileset",
+      "url": "http://localhost/3d/dragon/tiles/tileset.json",
+      "format": "3D Tiles",
+      "mimetype": "application/json",
+      "description": "3D Tileset that can be consumed by external clients.",
+      "create_view": true,
+      "tileset_url": "http://localhost/3d/dragon/tiles/tileset.json",
+      "allow_fullscreen": true
+    }
+  ],
+  "thumbnail": "../webmaps/dragon/tiles/screenshot/screenshot.gif"
+}

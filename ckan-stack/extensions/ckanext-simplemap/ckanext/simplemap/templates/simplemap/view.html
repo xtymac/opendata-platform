@@ -1,0 +1,27 @@
+{% extends "dataviewer/base.html" %}
+
+{% block styles %}
+  {{ super() }}
+  {% asset 'ckanext-simplemap/simplemap_css' %}
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  {% asset 'ckanext-simplemap/simplemap_js' %}
+{% endblock %}
+
+{% block page %}
+  <div
+    class="simple-map-wrapper"
+    data-module="simple-map-view"
+    data-site-url="{{ site_url }}"
+    data-resource-id="{{ resource.id }}"
+    data-lat-field="{{ lat_field }}"
+    data-lon-field="{{ lon_field }}"
+    data-label-field="{{ label_field or '' }}"
+    data-limit="{{ limit }}">
+  </div>
+  {% if not lat_field or not lon_field %}
+    <p class="text-warning">{{ _('Please edit this view and choose the latitude and longitude fields.') }}</p>
+  {% endif %}
+{% endblock %}

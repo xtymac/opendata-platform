@@ -1,0 +1,12 @@
+{% ckan_extends %}
+
+{% block home_image_content %}
+  {% set cover_url = h.assistant_cover_image_url() %}
+  {% set fallback_url = h.url_for_static('/base/images/placeholder-420x220.png') %}
+  <a class="media-image" href="#">
+    <img class="img-fluid"
+         src="{{ cover_url }}"
+         alt="{{ _('Featured cover image') }}"
+         onerror="this.onerror=null;this.src='{{ fallback_url }}';" />
+  </a>
+{% endblock %}

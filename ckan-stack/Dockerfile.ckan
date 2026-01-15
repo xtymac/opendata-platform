@@ -1,0 +1,63 @@
+FROM ckan/ckan-base:2.11.3-py3.10
+
+USER root
+
+# Copy the entrypoint customizations so they run inside the image itself.
+COPY docker-entrypoint.d/ /docker-entrypoint.d/
+
+# Bundle the custom CKAN extensions and static assets.
+COPY extensions/ckanext-assistant /srv/app/src/ckanext-assistant
+COPY extensions/ckanext-cesium_viewer /srv/app/src/ckanext-cesium_viewer
+COPY extensions/ckanext-harvest /srv/app/src/ckanext-harvest
+COPY extensions/ckanext-mlit_harvester /srv/app/src/ckanext-mlit_harvester
+COPY extensions/ckanext-reclineview /srv/app/src/ckanext-reclineview
+COPY extensions/ckanext-simplemap /srv/app/src/ckanext-simplemap
+COPY extensions/ckanext-timeseries /srv/app/src/ckanext-timeseries
+COPY webmaps/ /srv/app/webmaps/
+
+RUN chown -R ckan:ckan-sys /srv/app /docker-entrypoint.d
+
+USER ckan
+
+# Install the extra Python dependencies that were added in the running container.
+RUN pip install --no-cache-dir \
+    boto3==1.40.43 \
+    botocore==1.40.43 \
+    cachetools==6.2.0 \
+    cffi==2.0.0 \
+    ckanext-datajson==0.1.28 \
+    ckanext-dcat==2.4.1 \
+    ckanext-geoview==0.2.2 \
+    cryptography==46.0.2 \
+    frozendict==2.4.6 \
+    geojson==3.1.0 \
+    geomet==1.1.0 \
+    iso8601==2.1.0 \
+    isodate==0.7.2 \
+    jmespath==1.0.1 \
+    jsonschema==2.4.0 \
+    numpy==2.2.6 \
+    OWSLib==0.32.0 \
+    PasteDeploy==3.1.0 \
+    pika==1.2.1 \
+    ply==3.11 \
+    pycparser==2.23 \
+    PyLD==2.0.4 \
+    pyOpenSSL==25.3.0 \
+    pyproj==3.6.1 \
+    rdflib==7.2.1 \
+    rfc3987==1.3.8 \
+    s3transfer==0.14.0 \
+    sansjson==0.3.0 \
+    shapely==2.0.7 \
+    typing_extensions==4.15.0
+
+# Re-install the editable extensions inside the image so CKAN can load them.
+RUN pip install --no-cache-dir --no-deps \
+    -e /srv/app/src/ckanext-assistant \
+    -e /srv/app/src/ckanext-cesium_viewer \
+    -e /srv/app/src/ckanext-harvest \
+    -e /srv/app/src/ckanext-mlit_harvester \
+    -e /srv/app/src/ckanext-reclineview \
+    -e /srv/app/src/ckanext-simplemap \
+    -e /srv/app/src/ckanext-timeseries

@@ -1,0 +1,23 @@
+{% ckan_extends %}
+
+{% block admin_form %}
+  {{ super() }}
+
+  {% set field_url = 'ckanext.assistant.cover_image' %}
+  {% set field_value = data.get(field_url) if data else None %}
+  {% set is_upload = field_value and not field_value.startswith('http') %}
+  {% set is_url = field_value and field_value.startswith('http') %}
+
+  {{ form.image_upload(
+      data,
+      errors,
+      is_upload_enabled=h.uploads_enabled(),
+      is_url=is_url,
+      is_upload=is_upload,
+      upload_label=_('Homepage cover image'),
+      url_label=_('Homepage cover image URL'),
+      field_url=field_url,
+      field_upload='cover_image_upload',
+      field_clear='clear_cover_image_upload'
+  ) }}
+{% endblock %}

@@ -1,0 +1,40 @@
+# Environment and secrets
+.env
+*.pem
+secrets/
+credentials.json
+
+# Development data
+.dev/
+
+# Large runtime data
+webmaps/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+venv/
+
+# Node.js
+node_modules/
+
+# CKAN specific
+.ckan-local/
+
+# Terraform
+.terraform/
+*.tfstate*
+
+# Runtime/Logs
+data/sync_history.json
+*.log
+
+# Nested git repos (prevent embedding)
+**/.git/
+
+# IDE/OS
+.idea/
+.vscode/
+.DS_Store

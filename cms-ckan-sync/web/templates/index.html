@@ -1,0 +1,556 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Status Overview -->
+<div class="grid grid-3">
+    <div class="card stat-card">
+        <div class="stat-value">{{ status.total_syncs }}</div>
+        <div class="stat-label">Total Syncs</div>
+    </div>
+    <div class="card stat-card">
+        <div class="stat-value" style="color: var(--success-color);">{{ status.successful_syncs }}</div>
+        <div class="stat-label">Successful</div>
+    </div>
+    <div class="card stat-card">
+        <div class="stat-value" style="color: var(--error-color);">{{ status.failed_syncs }}</div>
+        <div class="stat-label">Failed</div>
+    </div>
+</div>
+
+<!-- Sync Control -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Sync Control</h2>
+        <span id="sync-status" class="status-badge {% if status.is_running %}status-running{% else %}status-pending{% endif %}">
+            {% if status.is_running %}
+                Syncing: {{ status.current_model }}
+            {% else %}
+                Ready
+            {% endif %}
+        </span>
+    </div>
+
+    <div id="sync-result" class="alert hidden"></div>
+
+    <form id="sync-form">
+        <h4 style="margin-bottom: 10px;">Select Models:</h4>
+        <div id="model-hint" class="form-hint" style="margin-bottom: 10px; display: none;">
+            In update mode, only one model can be selected at a time.
+        </div>
+        <div class="model-select">
+            {% for model_id, model_config in config.models.items() %}
+            <label class="model-chip selected">
+                <input type="checkbox" name="models" value="{{ model_id }}" checked>
+                <span>{{ model_config.ckan_dataset.title }}</span>
+            </label>
+            {% endfor %}
+        </div>
+
+        <div class="form-group" style="margin: 15px 0;">
+            <label class="form-label">Sync Mode:</label>
+            <div class="radio-group" style="flex-direction: row; gap: 20px;">
+                <label class="radio-option" style="flex: 1; padding: 10px;">
+                    <input type="radio" name="sync_mode" value="create" checked onchange="toggleResourceSelect()">
+                    <div class="radio-content">
+                        <div class="radio-title">Create New Resources</div>
+                        <div class="radio-desc">Upload as new resources to CKAN</div>
+                    </div>
+                </label>
+                <label class="radio-option" style="flex: 1; padding: 10px;">
+                    <input type="radio" name="sync_mode" value="update" onchange="toggleResourceSelect()">
+                    <div class="radio-content">
+                        <div class="radio-title">Update Existing Resources</div>
+                        <div class="radio-desc">Replace existing resource files</div>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div id="resource-select-section" class="form-group hidden" style="margin: 15px 0;">
+            <label class="form-label">Select Resource to Update:</label>
+            <select id="resource-select" class="form-select">
+                <option value="">Loading resources...</option>
+            </select>
+            <div class="form-hint">Select the existing CKAN resource to update with new data</div>
+        </div>
+
+        <button type="submit" id="sync-btn" class="btn btn-primary" {% if status.is_running %}disabled{% endif %}>
+            <span id="sync-btn-text">Start Sync</span>
+            <span id="sync-btn-loading" class="loading hidden"></span>
+        </button>
+    </form>
+</div>
+
+<!-- Configured Models -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Configured Models</h2>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Model ID</th>
+                <th>CMS Model</th>
+                <th>CKAN Dataset</th>
+                <th>Last Sync</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for model in status.models %}
+            <tr>
+                <td><strong>{{ model.model_id }}</strong></td>
+                <td>{{ model.cms_model_id }}</td>
+                <td>
+                    <a href="{{ config.ckan_url }}/dataset/{{ model.ckan_dataset_name }}" target="_blank">
+                        {{ model.ckan_dataset_name }}
+                    </a>
+                </td>
+                <td>
+                    {% if model.last_sync %}
+                        {{ model.last_sync.started_at.strftime('%Y-%m-%d %H:%M') }}
+                    {% else %}
+                        Never
+                    {% endif %}
+                </td>
+                <td>
+                    {% if model.is_syncing %}
+                        <span class="status-badge status-running">Syncing</span>
+                    {% elif model.last_sync %}
+                        {% if model.last_sync.status.value == 'success' %}
+                            <span class="status-badge status-success">Success</span>
+                        {% elif model.last_sync.status.value == 'failed' %}
+                            <span class="status-badge status-failed">Failed</span>
+                        {% else %}
+                            <span class="status-badge status-pending">{{ model.last_sync.status.value }}</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="status-badge status-pending">Pending</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Recent Sync History -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Recent Sync History</h2>
+    </div>
+
+    {% if history %}
+    <table>
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Model</th>
+                <th>Records</th>
+                <th>Resources</th>
+                <th>Duration</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for result in history %}
+            <tr class="history-row {% if result.status.value == 'failed' %}clickable{% endif %}"
+                {% if result.status.value == 'failed' and result.errors %}onclick="toggleErrorDetails(this)"{% endif %}>
+                <td>{{ result.started_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td>{{ result.model_id }}</td>
+                <td>{{ result.records_fetched }} / {{ result.records_transformed }}</td>
+                <td>{{ result.resources_uploaded }}</td>
+                <td>
+                    {% if result.duration_seconds %}
+                        {{ "%.2f"|format(result.duration_seconds) }}s
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if result.status.value == 'success' %}
+                        <span class="status-badge status-success">
+                            {% if result.dry_run %}Dry Run{% else %}Success{% endif %}
+                        </span>
+                    {% elif result.status.value == 'failed' %}
+                        <span class="status-badge status-failed" style="cursor: pointer;">
+                            Failed {% if result.errors %}&#9660;{% endif %}
+                        </span>
+                    {% else %}
+                        <span class="status-badge status-pending">{{ result.status.value }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% if result.status.value == 'failed' and result.errors %}
+            <tr class="error-details-row hidden">
+                <td colspan="6" style="background: #fee2e2; padding: 12px;">
+                    <div style="color: #991b1b;">
+                        <strong>Error Details:</strong>
+                        <ul style="margin: 8px 0 0 20px; padding: 0;">
+                            {% for error in result.errors %}
+                            <li style="margin-bottom: 4px;">{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% if result.warnings %}
+                        <div style="margin-top: 8px; color: #92400e;">
+                            <strong>Warnings:</strong>
+                            <ul style="margin: 8px 0 0 20px; padding: 0;">
+                                {% for warning in result.warnings %}
+                                <li style="margin-bottom: 4px;">{{ warning }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: var(--text-muted); text-align: center; padding: 20px;">
+        No sync history yet. Run your first sync above.
+    </p>
+    {% endif %}
+</div>
+
+<!-- Connection Test -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Connection Status</h2>
+        <button id="test-btn" class="btn btn-secondary" onclick="testConnections()">
+            Test Connections
+        </button>
+    </div>
+
+    <div id="connection-status">
+        <p style="color: var(--text-muted);">Click "Test Connections" to check CMS and CKAN connectivity.</p>
+    </div>
+</div>
+
+<!-- Auto-Sync Status -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Auto-Sync Status</h2>
+    </div>
+    <div class="grid grid-2" style="gap: 15px; padding: 15px;">
+        <div style="padding: 10px; background: var(--bg-light); border-radius: 4px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                <strong>Webhook:</strong>
+                <span class="status-badge status-success">Active</span>
+            </div>
+            <div class="form-hint" style="font-family: monospace; font-size: 12px;">
+                POST /api/webhook/cms
+            </div>
+            <div class="form-hint" style="margin-top: 4px;">
+                Triggers sync when CMS data is updated
+            </div>
+        </div>
+        <div style="padding: 10px; background: var(--bg-light); border-radius: 4px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                <strong>Scheduled Sync:</strong>
+                <span class="status-badge status-success">Enabled</span>
+            </div>
+            <div class="form-hint" style="font-family: monospace; font-size: 12px;">
+                Daily at 02:00 AM JST
+            </div>
+            <div class="form-hint" style="margin-top: 4px;">
+                Syncs all configured models automatically
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .history-row.clickable {
+        cursor: pointer;
+    }
+    .history-row.clickable:hover {
+        background: #fef2f2 !important;
+    }
+    .error-details-row td {
+        border-top: none !important;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Toggle error details
+    function toggleErrorDetails(row) {
+        const errorRow = row.nextElementSibling;
+        if (errorRow && errorRow.classList.contains('error-details-row')) {
+            errorRow.classList.toggle('hidden');
+            // Update arrow indicator
+            const badge = row.querySelector('.status-badge');
+            if (badge) {
+                if (errorRow.classList.contains('hidden')) {
+                    badge.innerHTML = 'Failed &#9660;';
+                } else {
+                    badge.innerHTML = 'Failed &#9650;';
+                }
+            }
+        }
+    }
+
+    // Toggle resource select visibility
+    function toggleResourceSelect() {
+        const syncMode = document.querySelector('input[name="sync_mode"]:checked').value;
+        const resourceSection = document.getElementById('resource-select-section');
+        const modelHint = document.getElementById('model-hint');
+        const modelCheckboxes = document.querySelectorAll('input[name="models"], input[name="models_radio"]');
+
+        if (syncMode === 'update') {
+            resourceSection.classList.remove('hidden');
+            modelHint.style.display = 'block';
+            loadExistingResources();
+
+            // In update mode, only allow selecting ONE model
+            // Convert checkboxes to radio-like behavior
+            modelCheckboxes.forEach(cb => {
+                cb.type = 'radio';
+                cb.name = 'models_radio';
+            });
+            // Select only the first one
+            let foundChecked = false;
+            modelCheckboxes.forEach(cb => {
+                if (cb.checked && !foundChecked) {
+                    foundChecked = true;
+                } else {
+                    cb.checked = false;
+                    cb.parentElement.classList.remove('selected');
+                }
+            });
+            if (!foundChecked && modelCheckboxes.length > 0) {
+                modelCheckboxes[0].checked = true;
+                modelCheckboxes[0].parentElement.classList.add('selected');
+            }
+        } else {
+            resourceSection.classList.add('hidden');
+            modelHint.style.display = 'none';
+
+            // In create mode, allow multiple selection (checkboxes)
+            modelCheckboxes.forEach(cb => {
+                cb.type = 'checkbox';
+                cb.name = 'models';
+                cb.checked = true;
+                cb.parentElement.classList.add('selected');
+            });
+        }
+
+        // Update radio option styling
+        document.querySelectorAll('.radio-option').forEach(opt => {
+            const radio = opt.querySelector('input[type="radio"]');
+            if (radio.checked) {
+                opt.classList.add('selected');
+            } else {
+                opt.classList.remove('selected');
+            }
+        });
+    }
+
+    // Load existing resources from CKAN
+    async function loadExistingResources() {
+        const select = document.getElementById('resource-select');
+        select.innerHTML = '<option value="">Loading resources...</option>';
+
+        try {
+            const response = await fetch('api/ckan/resources');
+            const data = await response.json();
+
+            if (data.resources && data.resources.length > 0) {
+                select.innerHTML = '<option value="">-- Select a resource --</option>';
+                data.resources.forEach(resource => {
+                    const option = document.createElement('option');
+                    option.value = resource.id;
+                    option.textContent = `${resource.dataset_title}: ${resource.name} (${resource.format})`;
+                    select.appendChild(option);
+                });
+            } else {
+                select.innerHTML = '<option value="">No resources found</option>';
+            }
+        } catch (error) {
+            select.innerHTML = '<option value="">Error loading resources</option>';
+            console.error('Failed to load resources:', error);
+        }
+    }
+
+    // Sync form submission
+    document.getElementById('sync-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const btn = document.getElementById('sync-btn');
+        const btnText = document.getElementById('sync-btn-text');
+        const btnLoading = document.getElementById('sync-btn-loading');
+        const resultDiv = document.getElementById('sync-result');
+
+        // Get sync mode first
+        const syncMode = document.querySelector('input[name="sync_mode"]:checked').value;
+
+        // Get selected models (different selector based on mode)
+        let selectedModels;
+        if (syncMode === 'update') {
+            // In update mode, models are radio buttons
+            const selected = document.querySelector('input[name="models_radio"]:checked');
+            selectedModels = selected ? [selected.value] : [];
+        } else {
+            // In create mode, models are checkboxes
+            selectedModels = Array.from(document.querySelectorAll('input[name="models"]:checked'))
+                .map(cb => cb.value);
+        }
+
+        if (selectedModels.length === 0) {
+            resultDiv.className = 'alert alert-error';
+            resultDiv.textContent = 'Please select at least one model to sync.';
+            resultDiv.classList.remove('hidden');
+            return;
+        }
+
+        const resourceId = document.getElementById('resource-select').value;
+
+        // Validate update mode
+        if (syncMode === 'update' && !resourceId) {
+            resultDiv.className = 'alert alert-error';
+            resultDiv.textContent = 'Please select a resource to update.';
+            resultDiv.classList.remove('hidden');
+            return;
+        }
+
+        // Disable button and show loading
+        btn.disabled = true;
+        btnText.textContent = 'Syncing...';
+        btnLoading.classList.remove('hidden');
+        resultDiv.classList.add('hidden');
+
+        try {
+            const response = await fetch('api/sync', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    models: selectedModels,
+                    sync_mode: syncMode,
+                    resource_id: syncMode === 'update' ? resourceId : null,
+                    dry_run: false,
+                    force: false
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                resultDiv.className = data.success ? 'alert alert-success' : 'alert alert-error';
+                resultDiv.textContent = data.message;
+
+                // Reload page after short delay to show updated status
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                resultDiv.className = 'alert alert-error';
+                resultDiv.textContent = data.detail || 'Sync failed. Please try again.';
+            }
+        } catch (error) {
+            resultDiv.className = 'alert alert-error';
+            resultDiv.textContent = 'Error: ' + error.message;
+        } finally {
+            btn.disabled = false;
+            btnText.textContent = 'Start Sync';
+            btnLoading.classList.add('hidden');
+            resultDiv.classList.remove('hidden');
+        }
+    });
+
+    // Initialize radio option styling on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.radio-option').forEach(opt => {
+            const radio = opt.querySelector('input[type="radio"]');
+            if (radio.checked) {
+                opt.classList.add('selected');
+            }
+        });
+    });
+
+    // Test connections
+    async function testConnections() {
+        const statusDiv = document.getElementById('connection-status');
+        const btn = document.getElementById('test-btn');
+
+        btn.disabled = true;
+        btn.textContent = 'Testing...';
+        statusDiv.innerHTML = '<p style="color: var(--text-muted);">Testing connections...</p>';
+
+        try {
+            const response = await fetch('api/test');
+            const data = await response.json();
+
+            let html = '<div class="grid grid-2" style="gap: 10px;">';
+
+            for (const [service, status] of Object.entries(data)) {
+                const statusClass = status ? 'status-success' : 'status-failed';
+                const statusText = status ? 'Connected' : 'Failed';
+                html += `
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <strong>${service.toUpperCase()}:</strong>
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </div>
+                `;
+            }
+
+            html += '</div>';
+            statusDiv.innerHTML = html;
+        } catch (error) {
+            statusDiv.innerHTML = `<p class="alert alert-error">Error testing connections: ${error.message}</p>`;
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Test Connections';
+        }
+    }
+
+    // Model chip selection
+    document.querySelectorAll('.model-chip').forEach(chip => {
+        const input = chip.querySelector('input');
+        if (input.checked) {
+            chip.classList.add('selected');
+        }
+
+        chip.addEventListener('click', function(e) {
+            const input = chip.querySelector('input');
+
+            // Don't do anything if clicking directly on the input
+            if (e.target.tagName === 'INPUT') {
+                // For radio buttons, update all chips' visual state
+                if (input.type === 'radio') {
+                    document.querySelectorAll('.model-chip').forEach(c => {
+                        const inp = c.querySelector('input');
+                        c.classList.toggle('selected', inp.checked);
+                    });
+                } else {
+                    chip.classList.toggle('selected', input.checked);
+                }
+                return;
+            }
+
+            // Handle click on label (not directly on input)
+            if (input.type === 'radio') {
+                // For radio buttons, select this one
+                input.checked = true;
+                // Update all chips' visual state
+                document.querySelectorAll('.model-chip').forEach(c => {
+                    const inp = c.querySelector('input');
+                    c.classList.toggle('selected', inp.checked);
+                });
+                // Reload resources for the selected model
+                loadExistingResources();
+            } else {
+                // For checkboxes, toggle
+                input.checked = !input.checked;
+                chip.classList.toggle('selected', input.checked);
+            }
+        });
+    });
+</script>
+{% endblock %}

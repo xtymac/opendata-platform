@@ -1,0 +1,54 @@
+{
+  "id": "27100_osaka_kita_2023",
+  "title": "大阪府大阪市北区 3D都市モデル (2023年度)",
+  "description": "大阪市北区の3D都市モデルデータ。3D Tiles形式で提供され、Web上での高速表示が可能です。建築物、地形データを含みます。",
+  "city": "大阪市北区",
+  "prefecture": "大阪府",
+  "year": 2023,
+  "modelType": "3DTiles",
+  "specVersion": "1.0",
+  "themes": ["建築物", "地形", "テクスチャ"],
+  "bbox": [135.4944, 34.7024, 135.5144, 34.7224],
+  "license": "CC-BY-4.0",
+  "source": "PLATEAU/MLIT",
+  "createdAt": "2023-03-15T00:00:00Z",
+  "updatedAt": "2023-11-15T14:30:00Z",
+  "resources": [
+    {
+      "url": "https://example.plateau.jp/data/27100/3dtiles/27100_osaka_kita_bldg/tileset.json",
+      "name": "建築物3D Tiles",
+      "description": "LOD2建築物の3D Tilesデータセット",
+      "format": "3DTiles",
+      "mediaType": "application/json",
+      "size": 52428800
+    },
+    {
+      "url": "https://example.plateau.jp/data/27100/3dtiles/27100_osaka_kita_dem/tileset.json",
+      "name": "地形3D Tiles",
+      "description": "数値標高モデルの3D Tilesデータセット",
+      "format": "3DTiles",
+      "mediaType": "application/json",
+      "size": 10485760
+    },
+    {
+      "url": "https://example.plateau.jp/data/27100/texture/27100_osaka_kita_texture.zip",
+      "name": "テクスチャデータ",
+      "description": "建築物テクスチャ画像（ZIP圧縮）",
+      "format": "ZIP",
+      "mediaType": "application/zip",
+      "size": 104857600
+    },
+    {
+      "url": "https://example.plateau.jp/data/27100/geojson/27100_osaka_kita_footprint.geojson",
+      "name": "建築物フットプリント（GeoJSON）",
+      "description": "建築物の平面形状データ",
+      "format": "GeoJSON",
+      "mediaType": "application/geo+json",
+      "size": 1048576
+    }
+  ],
+  "contact": {
+    "name": "大阪市都市計画局",
+    "email": "toshikeikaku@city.osaka.lg.jp"
+  }
+}

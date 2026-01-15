@@ -1,0 +1,2 @@
+recursive-include ckanext/assistant/templates *
+recursive-include ckanext/assistant/fanstatic *

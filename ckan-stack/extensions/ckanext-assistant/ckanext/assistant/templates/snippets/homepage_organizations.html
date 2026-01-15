@@ -1,0 +1,51 @@
+<div class="module module-content homepage-organizations" style="background: #f8f8f8; padding: 20px; margin-top: 20px; border-radius: 4px;">
+  {% set all_orgs = h.get_action('organization_list', {'all_fields': True}) %}
+  {% set orgs_with_data = [] %}
+  {% for org in all_orgs %}
+    {% if org.package_count and org.package_count > 0 %}
+      {% set _ = orgs_with_data.append(org) %}
+    {% endif %}
+  {% endfor %}
+
+  {% set current_lang = request.environ.CKAN_LANG or 'ja' %}
+  {% if current_lang == 'ja' %}
+    {% set heading = '最近収集したデータ' %}
+    {% set summary_template = 'データがある組織を{count}つ見つけました' %}
+    {% set view_all_label = 'すべての組織を表示' %}
+  {% else %}
+    {% set heading = 'Recently harvested organizations' %}
+    {% set summary_template = 'Found {count} organizations with published data' %}
+    {% set view_all_label = 'View all organizations' %}
+  {% endif %}
+
+  <h2 style="margin-top: 0;">
+    <i class="fa fa-building"></i>
+    {{ heading }}
+  </h2>
+
+  <p>{{ summary_template.format(count=orgs_with_data|length) }}</p>
+
+  {% for org in orgs_with_data[:2] %}
+    <div style="padding: 15px; background: white; margin-bottom: 10px; border-radius: 4px; border: 1px solid #ddd;">
+      <h3 style="margin: 0 0 10px 0;">
+        <a href="{{ h.url_for('organization.read', id=org.name) }}">
+          {{ org.title or org.name }}
+        </a>
+      </h3>
+      <p style="margin: 0; color: #666;">
+        <i class="fa fa-database"></i>
+        {% if current_lang == 'ja' %}
+          {{ org.package_count }} 件データセット
+        {% else %}
+          {{ ungettext('%(count)s dataset', '%(count)s datasets', org.package_count) | format(count=org.package_count) }}
+        {% endif %}
+      </p>
+    </div>
+  {% endfor %}
+
+  <p style="text-align: center; margin-top: 15px;">
+    <a href="{{ h.url_for('organization.index') }}" class="btn btn-primary">
+      {{ view_all_label }}
+    </a>
+  </p>
+</div>

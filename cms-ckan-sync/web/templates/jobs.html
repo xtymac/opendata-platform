@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Saved Sync Jobs</h2>
+        <a href="{{ url_for('sync_page') }}" class="btn btn-primary">+ New Job</a>
+    </div>
+
+    <div id="jobs-result" class="alert hidden"></div>
+
+    <div id="jobs-list">
+        {% if jobs %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Job Name</th>
+                    <th>Source</th>
+                    <th>Target</th>
+                    <th>Last Run</th>
+                    <th style="width: 180px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for job in jobs %}
+                <tr id="job-row-{{ job.job_id }}">
+                    <td><strong>{{ job.name }}</strong></td>
+                    <td>
+                        <code>{{ job.config.cms_model_id }}</code>
+                    </td>
+                    <td>
+                        {% if job.config.target_mode == 'new_dataset' %}
+                            <span class="status-badge status-pending">New</span>
+                            {{ job.config.new_dataset_name or job.config.new_dataset_title }}
+                        {% else %}
+                            <span class="status-badge status-success">Existing</span>
+                            {{ job.config.existing_dataset_id }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if job.last_run %}
+                            {{ job.last_run.strftime('%Y-%m-%d %H:%M') }}
+                        {% else %}
+                            <span style="color: var(--text-muted);">Never</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.75rem;"
+                                    onclick="runJob('{{ job.job_id }}', this)">
+                                Run
+                            </button>
+                            <button class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.75rem;"
+                                    onclick="viewJob('{{ job.job_id }}')">
+                                View
+                            </button>
+                            <button class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.75rem; color: var(--error-color);"
+                                    onclick="deleteJob('{{ job.job_id }}')">
+                                Delete
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+            <p style="margin-bottom: 16px;">No saved jobs yet.</p>
+            <a href="{{ url_for('sync_page') }}" class="btn btn-primary">Create Your First Job</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Job Details Modal -->
+<div id="job-modal" class="modal-overlay hidden" onclick="closeJobModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3 class="modal-title">Job Details</h3>
+            <button class="modal-close" onclick="closeJobModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="job-modal-content">
+            <p style="text-align: center; color: var(--text-muted);">Loading...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Delete Modal -->
+<div id="delete-modal" class="modal-overlay hidden" onclick="closeDeleteModal(event)">
+    <div class="modal" style="max-width: 400px;" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3 class="modal-title">Confirm Delete</h3>
+            <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete this job?</p>
+            <p style="color: var(--text-muted); font-size: 0.875rem;">This action cannot be undone.</p>
+            <div class="btn-row right" style="margin-top: 20px;">
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" style="background: var(--error-color);" id="confirm-delete-btn">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let jobToDelete = null;
+
+    // Run a job
+    async function runJob(jobId, btn) {
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Running...';
+
+        const resultDiv = document.getElementById('jobs-result');
+
+        try {
+            const response = await fetch(`api/jobs/${jobId}/run`, {
+                method: 'POST'
+            });
+            const data = await response.json();
+
+            resultDiv.classList.remove('hidden', 'alert-success', 'alert-error');
+            if (data.success) {
+                resultDiv.classList.add('alert-success');
+                resultDiv.textContent = data.message || 'Job completed successfully!';
+                // Reload to update last_run
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                resultDiv.classList.add('alert-error');
+                resultDiv.textContent = data.message || data.detail || 'Job failed';
+            }
+        } catch (error) {
+            resultDiv.classList.remove('hidden');
+            resultDiv.classList.add('alert-error');
+            resultDiv.textContent = 'Error: ' + error.message;
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    }
+
+    // View job details
+    async function viewJob(jobId) {
+        const modal = document.getElementById('job-modal');
+        const content = document.getElementById('job-modal-content');
+        modal.classList.remove('hidden');
+        content.innerHTML = '<p style="text-align: center; color: var(--text-muted);">Loading...</p>';
+
+        try {
+            const response = await fetch(`api/jobs/${jobId}`);
+            const job = await response.json();
+
+            if (job.detail) {
+                content.innerHTML = `<p style="color: var(--error-color);">${job.detail}</p>`;
+                return;
+            }
+
+            const config = job.config;
+            let html = `
+                <div class="two-col" style="gap: 16px;">
+                    <div>
+                        <h4 style="margin-bottom: 12px;">Source (CMS)</h4>
+                        <table style="font-size: 0.875rem;">
+                            <tr><td style="color: var(--text-muted);">Model ID:</td><td><code>${config.cms_model_id}</code></td></tr>
+                            <tr><td style="color: var(--text-muted);">Geometry Field:</td><td>${config.geometry_field || '-'}</td></tr>
+                            <tr><td style="color: var(--text-muted);">Include GeoJSON:</td><td>${config.include_geojson ? 'Yes' : 'No'}</td></tr>
+                        </table>
+                    </div>
+                    <div>
+                        <h4 style="margin-bottom: 12px;">Target (CKAN)</h4>
+                        <table style="font-size: 0.875rem;">
+                            <tr><td style="color: var(--text-muted);">Mode:</td><td>${config.target_mode === 'new_dataset' ? 'Create New' : 'Existing'}</td></tr>
+            `;
+
+            if (config.target_mode === 'new_dataset') {
+                html += `
+                            <tr><td style="color: var(--text-muted);">Dataset Name:</td><td>${config.new_dataset_name || '-'}</td></tr>
+                            <tr><td style="color: var(--text-muted);">Dataset Title:</td><td>${config.new_dataset_title || '-'}</td></tr>
+                `;
+            } else {
+                html += `
+                            <tr><td style="color: var(--text-muted);">Dataset ID:</td><td>${config.existing_dataset_id || '-'}</td></tr>
+                            <tr><td style="color: var(--text-muted);">Resource Mode:</td><td>${config.resource_mode === 'update' ? 'Update Existing' : 'Create New'}</td></tr>
+                `;
+                if (config.resource_mode === 'update') {
+                    html += `<tr><td style="color: var(--text-muted);">Resource ID:</td><td>${config.existing_resource_id || '-'}</td></tr>`;
+                }
+            }
+
+            html += `
+                            <tr><td style="color: var(--text-muted);">Resource Name:</td><td>${config.resource_name || '-'}</td></tr>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            // Field mappings
+            if (config.field_mappings && config.field_mappings.length > 0) {
+                html += `
+                    <h4 style="margin-top: 20px; margin-bottom: 12px;">Field Mappings</h4>
+                    <table style="font-size: 0.875rem;">
+                        <thead>
+                            <tr><th>CMS Field</th><th>CKAN Column</th></tr>
+                        </thead>
+                        <tbody>
+                `;
+                config.field_mappings.forEach(m => {
+                    html += `<tr><td><code>${m.cms_field}</code></td><td>${m.ckan_field || '<em style="color: var(--text-muted);">Ignored</em>'}</td></tr>`;
+                });
+                html += '</tbody></table>';
+            }
+
+            html += `
+                <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                    <small style="color: var(--text-muted);">
+                        Created: ${job.created_at ? new Date(job.created_at).toLocaleString() : '-'} |
+                        Last Run: ${job.last_run ? new Date(job.last_run).toLocaleString() : 'Never'}
+                    </small>
+                </div>
+            `;
+
+            content.innerHTML = html;
+        } catch (error) {
+            content.innerHTML = `<p style="color: var(--error-color);">Error: ${error.message}</p>`;
+        }
+    }
+
+    function closeJobModal(event) {
+        if (!event || event.target === event.currentTarget) {
+            document.getElementById('job-modal').classList.add('hidden');
+        }
+    }
+
+    // Delete job
+    function deleteJob(jobId) {
+        jobToDelete = jobId;
+        document.getElementById('delete-modal').classList.remove('hidden');
+        document.getElementById('confirm-delete-btn').onclick = confirmDelete;
+    }
+
+    function closeDeleteModal(event) {
+        if (!event || event.target === event.currentTarget) {
+            document.getElementById('delete-modal').classList.add('hidden');
+            jobToDelete = null;
+        }
+    }
+
+    async function confirmDelete() {
+        if (!jobToDelete) return;
+
+        const btn = document.getElementById('confirm-delete-btn');
+        btn.disabled = true;
+        btn.textContent = 'Deleting...';
+
+        try {
+            const response = await fetch(`api/jobs/${jobToDelete}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                // Remove row from table
+                const row = document.getElementById(`job-row-${jobToDelete}`);
+                if (row) row.remove();
+
+                closeDeleteModal();
+
+                // Show success message
+                const resultDiv = document.getElementById('jobs-result');
+                resultDiv.classList.remove('hidden', 'alert-error');
+                resultDiv.classList.add('alert-success');
+                resultDiv.textContent = 'Job deleted successfully';
+
+                // Check if table is empty
+                const tbody = document.querySelector('tbody');
+                if (tbody && tbody.children.length === 0) {
+                    location.reload();
+                }
+            } else {
+                const data = await response.json();
+                alert(data.detail || 'Failed to delete job');
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Delete';
+        }
+    }
+</script>
+{% endblock %}

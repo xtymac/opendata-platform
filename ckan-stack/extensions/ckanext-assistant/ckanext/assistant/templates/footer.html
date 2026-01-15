@@ -1,0 +1,402 @@
+<div id="ckan-assistant-root" data-assistant-endpoint="{{ h.url_for('assistant.proxy_chat') }}"></div>
+<script>
+  (function () {
+    const mountPoint = document.getElementById('ckan-assistant-root');
+    if (!mountPoint || window.CKAN_ASSISTANT_INITIALISED) {
+      return;
+    }
+
+    window.CKAN_ASSISTANT_INITIALISED = true;
+
+    const endpoint = mountPoint.dataset.assistantEndpoint || '/assistant/chat';
+
+    const style = document.createElement('style');
+    style.textContent = `
+      #ckan-assistant-toggle {
+        position: fixed;
+        right: 20px;
+        bottom: 20px;
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        background: #2fa4e7;
+        color: #fff;
+        border: 1px solid #1c7fba;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        font-size: 24px;
+        z-index: 1050;
+      }
+
+      #ckan-assistant-panel {
+        position: fixed;
+        right: 20px;
+        bottom: 96px;
+        width: clamp(360px, 32vw, 540px);
+        max-width: calc(100vw - 40px);
+        height: clamp(480px, 60vh, 720px);
+        background: #fff;
+        border-radius: 8px;
+        border: 1px solid #d9d9d9;
+        box-shadow: 0 16px 40px rgba(31, 51, 73, 0.22);
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+        z-index: 1050;
+      }
+
+      #ckan-assistant-panel.open {
+        display: flex;
+      }
+
+      #ckan-assistant-header {
+        background: #e5f3fb;
+        color: #294860;
+        padding: 12px 16px;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #c0d7e6;
+      }
+
+      #ckan-assistant-messages {
+        flex: 1;
+        padding: 16px;
+        overflow-y: auto;
+        background: #f5f5f5;
+      }
+
+      #ckan-assistant-input {
+        display: flex;
+        gap: 8px;
+        padding: 12px;
+        border-top: 1px solid #d9d9d9;
+        background: #fff;
+      }
+
+      #ckan-assistant-input textarea {
+        flex: 1;
+        resize: none;
+        border-radius: 4px;
+        border: 1px solid #d9d9d9;
+        padding: 8px;
+        min-height: 56px;
+        font-size: 14px;
+        box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.05);
+      }
+
+      #ckan-assistant-input button {
+        background: #2fa4e7;
+        border: 1px solid #1c7fba;
+        color: #fff;
+        padding: 0 18px;
+        border-radius: 4px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      #ckan-assistant-input button:hover {
+        background: #1c7fba;
+      }
+
+      .assistant-message {
+        margin-bottom: 12px;
+        white-space: pre-wrap;
+      }
+
+      .assistant-message.system {
+        color: #6f6f6f;
+        font-size: 13px;
+      }
+
+      .assistant-message.user {
+        color: #294860;
+        font-weight: 600;
+      }
+
+      .assistant-message.assistant {
+        background: #fff;
+        border-radius: 6px;
+        padding: 10px 12px;
+        border: 1px solid #d9d9d9;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      }
+
+      .assistant-sources {
+        margin-top: 8px;
+        font-size: 12px;
+        color: #6f6f6f;
+      }
+    `;
+    document.head.appendChild(style);
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.id = 'ckan-assistant-toggle';
+    toggleBtn.type = 'button';
+    toggleBtn.setAttribute('aria-label', 'Open CKAN assistant');
+    toggleBtn.textContent = '💬';
+
+    const panel = document.createElement('div');
+    panel.id = 'ckan-assistant-panel';
+    panel.innerHTML = `
+      <div id="ckan-assistant-header">
+        <span>CKAN AI Assistant</span>
+        <button type="button" id="ckan-assistant-close" aria-label="Close" class="close">×</button>
+      </div>
+      <div id="ckan-assistant-messages"></div>
+      <form id="ckan-assistant-input">
+        <textarea name="message" placeholder="Type your question…" required></textarea>
+        <button type="submit">Send</button>
+      </form>
+    `;
+
+    mountPoint.append(toggleBtn, panel);
+
+    const closeBtn = panel.querySelector('#ckan-assistant-close');
+    const messagesContainer = panel.querySelector('#ckan-assistant-messages');
+    const form = panel.querySelector('#ckan-assistant-input');
+    const textarea = form.querySelector('textarea');
+
+    const history = [];
+    let isSending = false;
+    let thinkingMessage = null;
+
+    function setThinking(active) {
+      if (active) {
+        if (thinkingMessage) {
+          return;
+        }
+        thinkingMessage = document.createElement('div');
+        thinkingMessage.className = 'assistant-message system';
+        thinkingMessage.textContent = 'Assistant is thinking…';
+        messagesContainer.appendChild(thinkingMessage);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      } else if (thinkingMessage) {
+        messagesContainer.removeChild(thinkingMessage);
+        thinkingMessage = null;
+      }
+    }
+
+    function togglePanel(forceOpen) {
+      const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : !panel.classList.contains('open');
+      panel.classList.toggle('open', shouldOpen);
+      if (shouldOpen) {
+        textarea.focus();
+      }
+    }
+
+    function appendMessage(role, content, sources) {
+      const item = document.createElement('div');
+      item.className = `assistant-message ${role}`;
+
+      if (role === 'assistant' && sources && sources.length) {
+        const list = sources.map((url) => `<a href="${url}" target="_blank" rel="noopener">${url}</a>`).join('<br>');
+        item.innerHTML = `<div>${content}</div><div class="assistant-sources">Sources:<br>${list}</div>`;
+      } else {
+        item.textContent = content;
+      }
+
+      messagesContainer.appendChild(item);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    async function sendMessage(text) {
+      if (!text) {
+        setThinking(false);
+        return;
+      }
+
+      if (isSending) {
+        setThinking(false);
+        return;
+      }
+
+      appendMessage('user', text);
+      history.push({ role: 'user', content: text });
+      isSending = true;
+      textarea.value = '';
+      textarea.disabled = true;
+      setThinking(true);
+
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify({
+            message: text,
+            history: history,
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Assistant error ${response.status}`);
+        }
+
+        const payload = await response.json();
+        const reply = payload.reply || 'The assistant did not return a response.';
+        setThinking(false);
+        appendMessage('assistant', reply, payload.sources || []);
+        history.push({ role: 'assistant', content: reply });
+      } catch (error) {
+        console.error(error);
+        setThinking(false);
+        appendMessage('system', 'Assistant is temporarily unavailable. Please try again later.');
+      } finally {
+        isSending = false;
+        textarea.disabled = false;
+        textarea.focus();
+      }
+    }
+
+    toggleBtn.addEventListener('click', function () {
+      togglePanel();
+    });
+
+    closeBtn.addEventListener('click', function () {
+      togglePanel(false);
+    });
+
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      const text = textarea.value.trim();
+      sendMessage(text);
+    });
+  })();
+</script>
+
+<!-- Homepage Organization Display -->
+{% if request.path in ['/', '/en', '/en/', '/ja', '/ja/'] %}
+<script>
+  (function() {
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', insertOrganizations);
+    } else {
+      insertOrganizations();
+    }
+
+    function insertOrganizations() {
+      // Find the main hero section
+      const mainHero = document.querySelector('.main.hero');
+      if (!mainHero) return;
+
+      // Create a container div with proper Bootstrap styling
+      const container = document.createElement('div');
+      container.className = 'container';
+      container.style.cssText = 'margin-top: 30px; margin-bottom: 30px;';
+
+      // Create the organizations container
+      const orgDiv = document.createElement('div');
+      orgDiv.className = 'module module-content homepage-organizations';
+      orgDiv.style.cssText = 'background: #f8f8f8; padding: 20px; border-radius: 4px;';
+
+      // Fetch organizations data via CKAN API
+      const locale = document.documentElement.getAttribute('lang') || 'ja';
+      const translations = {
+        ja: {
+          heading: '最近収集したデータ',
+          summary: count => `データがある組織を${count}つ見つけました`,
+          dataset: count => `${count} 件データセット`,
+          viewAll: 'すべての組織を表示'
+        },
+        en: {
+          heading: 'Recently harvested organizations',
+          summary: count => `Found ${count} organizations with published data`,
+          dataset: count => `${count} dataset${count === 1 ? '' : 's'}`,
+          viewAll: 'View all organizations'
+        }
+      };
+      const t = translations[locale] || translations.en;
+
+      fetch('/api/3/action/organization_list?all_fields=true')
+        .then(res => res.json())
+        .then(data => {
+          if (!data.success) return;
+
+          const orgs = data.result.filter(org => org.package_count > 0).slice(0, 2);
+
+          let html = `
+            <h2 style="margin-top: 0;">
+              <i class="fa fa-building"></i>
+              ${t.heading}
+            </h2>
+            <p>${t.summary(orgs.length)}</p>
+          `;
+
+          orgs.forEach(org => {
+            html += `
+              <div style="padding: 15px; background: white; margin-bottom: 10px; border-radius: 4px; border: 1px solid #ddd;">
+                <h3 style="margin: 0 0 10px 0;">
+                  <a href="/organization/${org.name}">
+                    ${org.title || org.name}
+                  </a>
+                </h3>
+                <p style="margin: 0; color: #666;">
+                  <i class="fa fa-database"></i>
+                  ${t.dataset(org.package_count)}
+                </p>
+              </div>
+            `;
+          });
+
+          html += `
+            <p style="text-align: center; margin-top: 15px;">
+              <a href="/organization" class="btn btn-primary">
+                ${t.viewAll}
+              </a>
+            </p>
+          `;
+
+          orgDiv.innerHTML = html;
+          container.appendChild(orgDiv);
+
+          // Insert after the main hero section
+          mainHero.parentNode.insertBefore(container, mainHero.nextSibling);
+        })
+        .catch(err => console.error('Failed to load organizations:', err));
+    }
+  })();
+</script>
+{% endif %}
+
+<!-- CMS Auto-Sync for Resource Pages -->
+{% if '/resource/' in request.path %}
+<script>
+(function() {
+  const CMS_DATASETS = ['public-facilities', 'childcare-facilities'];
+  const path = window.location.pathname;
+  const match = path.match(/\/dataset\/([^\/]+)\/resource\//);
+  if (!match || !CMS_DATASETS.includes(match[1])) return;
+
+  const datasetName = match[1];
+  const modelMap = {
+    'public-facilities': 'public_facility',
+    'childcare-facilities': 'childcare_facilities'
+  };
+
+  async function autoSync() {
+    try {
+      const resp = await fetch('/assistant/sync', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({models: [modelMap[datasetName]]})
+      });
+      if (resp.ok) {
+        setTimeout(() => location.reload(), 800);
+      }
+    } catch (e) { /* silent fail */ }
+  }
+
+  // Auto-trigger sync on page load (only once per ~10sec window)
+  const syncKey = 'cms_sync_' + datasetName + '_' + Date.now().toString().slice(0, -4);
+  if (!sessionStorage.getItem(syncKey)) {
+    sessionStorage.setItem(syncKey, '1');
+    setTimeout(autoSync, 300);
+  }
+})();
+</script>
+{% endif %}

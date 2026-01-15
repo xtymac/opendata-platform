@@ -1,0 +1,26 @@
+{% set cfg = cesium_viewer %}
+<div class="control-group">
+  <label class="control-label" for="field-tileset-url">{{ _('Tileset URL override') }}</label>
+  <div class="controls">
+    <input id="field-tileset-url" type="text" name="tileset_url" value="{{ cfg.tileset_url or '' }}" class="form-control" placeholder="https://example.org/3d/tileset.json">
+    <p class="help-block">{{ _('Leave empty to use the automatically detected URL (e.g. extracted from the ZIP).') }}</p>
+  </div>
+</div>
+
+<div class="control-group">
+  <label class="control-label" for="field-tileset-path">{{ _('Tileset path inside archive') }}</label>
+  <div class="controls">
+    <input id="field-tileset-path" type="text" name="tileset_path" value="{{ cfg.tileset_path or '' }}" class="form-control" placeholder="folder/subfolder/tileset.json">
+    <p class="help-block">{{ _('Only needed when the resource URL points to a ZIP. Provide the relative path of tileset.json inside the archive.') }}</p>
+  </div>
+</div>
+
+<div class="control-group">
+  <div class="controls">
+    <label class="checkbox" for="field-allow-fullscreen">
+      <input type="hidden" name="allow_fullscreen" value="false">
+      <input id="field-allow-fullscreen" type="checkbox" name="allow_fullscreen" value="true" {% if cfg.allow_fullscreen %}checked="checked"{% endif %}>
+      {{ _('Allow fullscreen button') }}
+    </label>
+  </div>
+</div>

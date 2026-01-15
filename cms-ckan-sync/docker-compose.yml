@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  # CLI mode - for manual/cron runs
+  # Usage: docker compose --profile cli run --rm cms-sync-cli
+  # Usage: docker compose --profile cli run --rm cms-sync-cli --models public_facility --dry-run
+  cms-sync-cli:
+    build: .
+    container_name: cms-sync-cli
+    env_file: .env
+    volumes:
+      - ./config:/app/config:ro
+      - ./data:/app/data
+    profiles:
+      - cli
+
+  # Web UI mode - runs continuously as dashboard
+  # Usage: docker compose up -d cms-sync-web
+  cms-sync-web:
+    build: .
+    container_name: cms-sync-web
+    env_file: .env
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    volumes:
+      - ./config:/app/config:ro
+      - ./data:/app/data
+    entrypoint: []
+    command: ["python", "-m", "uvicorn", "web.app:app", "--host", "0.0.0.0", "--port", "8080"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  default:
+    name: cms-sync-network

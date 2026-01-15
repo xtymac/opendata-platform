@@ -1,0 +1,89 @@
+/* Fix for excessive whitespace on long browser windows */
+
+/* Override min-height settings that cause whitespace */
+.min-vh-100,
+.main-content,
+.wrapper,
+#content,
+.container,
+.row {
+  min-height: auto !important;
+}
+
+/* Prevent body from having excessive height */
+body {
+  min-height: 100vh;
+  height: auto !important;
+}
+
+html {
+  height: 100%;
+}
+
+.account-language-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.account-language-wrapper .account-language-main {
+  flex: 1 1 auto;
+}
+
+.account-language-selector {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.account-language-selector .lang-select--masthead {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.masthead-lang-trigger {
+  color: #fff;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.masthead-lang-trigger:hover,
+.masthead-lang-trigger:focus {
+  color: #e6e6e6;
+  text-decoration: none;
+}
+
+.masthead-lang-select {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 14px;
+  padding: 0 0 0 0.25rem;
+}
+
+.masthead-lang-select option {
+  color: #000;
+}
+
+.lang-select--masthead select:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.system-uptime-banner {
+  background-color: #28a745;
+  color: white;
+  text-align: center;
+  padding: 8px;
+  font-weight: bold;
+  font-size: 14px;
+  z-index: 1000;
+  position: relative;
+}

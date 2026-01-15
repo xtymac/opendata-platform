@@ -1,0 +1,53 @@
+{
+  "id": "13100_tokyo_chiyoda_2023",
+  "title": "東京都千代田区 3D都市モデル (2023年度)",
+  "description": "東京都千代田区の3D都市モデルデータ。建築物、道路、都市計画区域のCityGMLデータを含みます。PLATEAU 2023年度整備プロジェクトの成果物。",
+  "city": "千代田区",
+  "prefecture": "東京都",
+  "year": 2023,
+  "modelType": "CityGML",
+  "specVersion": "2.0",
+  "themes": ["建築物", "道路", "都市計画"],
+  "bbox": [139.7528, 35.6762, 139.7728, 35.6962],
+  "license": "CC-BY-4.0",
+  "source": "PLATEAU/MLIT",
+  "createdAt": "2023-04-01T00:00:00Z",
+  "updatedAt": "2023-12-01T10:00:00Z",
+  "resources": [
+    {
+      "url": "https://example.plateau.jp/data/13100/bldg/13100_tokyo_chiyoda_bldg_2023.gml",
+      "name": "建築物モデル（Building）",
+      "description": "LOD2建築物データ",
+      "format": "CityGML",
+      "mediaType": "application/xml",
+      "size": 15728640
+    },
+    {
+      "url": "https://example.plateau.jp/data/13100/tran/13100_tokyo_chiyoda_tran_2023.gml",
+      "name": "道路モデル（Transportation）",
+      "description": "道路中心線・道路面データ",
+      "format": "CityGML",
+      "mediaType": "application/xml",
+      "size": 3145728
+    },
+    {
+      "url": "https://example.plateau.jp/data/13100/urf/13100_tokyo_chiyoda_urf_2023.gml",
+      "name": "都市計画決定情報（UrbanFunction）",
+      "description": "用途地域等の都市計画情報",
+      "format": "CityGML",
+      "mediaType": "application/xml",
+      "size": 2097152
+    },
+    {
+      "url": "https://example.plateau.jp/data/13100/13100_tokyo_chiyoda_2023_metadata.xml",
+      "name": "メタデータ",
+      "format": "XML",
+      "mediaType": "application/xml",
+      "size": 10240
+    }
+  ],
+  "contact": {
+    "name": "東京都デジタルサービス局",
+    "email": "digital@metro.tokyo.lg.jp"
+  }
+}

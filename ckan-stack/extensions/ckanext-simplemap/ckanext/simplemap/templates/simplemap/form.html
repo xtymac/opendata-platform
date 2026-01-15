@@ -1,0 +1,10 @@
+{% import 'macros/form.html' as form %}
+
+{{ form.select('latitude_field', label=_('Latitude field'), options=field_options, selected=lat_field, error=errors.latitude_field, classes=['control-full']) }}
+
+{{ form.select('longitude_field', label=_('Longitude field'), options=field_options, selected=lon_field, error=errors.longitude_field, classes=['control-full']) }}
+
+{% set label_options = [{'value': '', 'text': _('No label')} ] + field_options %}
+{{ form.select('label_field', label=_('Label field (optional)'), options=label_options, selected=label_field, error=errors.label_field, classes=['control-full']) }}
+
+{{ form.input('limit', label=_('Maximum records to display'), value=limit, error=errors.limit, type='number', classes=['control-full'], attrs={'class': 'form-control', 'min': '1'}) }}
